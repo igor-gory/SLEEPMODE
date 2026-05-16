@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Animation Progress Tracker</title>
+    <meta
+      name="description"
+      content="Трекер прогресса cloth/hair версий по сиквенциям и шотам."
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&f[]=jetbrains-mono@500,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0b0d10;
+        --panel: #14171c;
+        --panel-2: #1a1e25;
+        --border: #262b34;
+        --text: #e7eaef;
+        --text-dim: #8a93a3;
+        --accent: #5eead4;
+        --accent-strong: #2dd4bf;
+        --ok: #34d399;
+        --miss: #4a5160;
+        --warn: #fbbf24;
+      }
+      html,
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          "Satoshi",
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          sans-serif;
+        font-feature-settings: "ss01", "cv11";
+      }
+      .mono {
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+      .panel-2 {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.4;
+      }
+      .chip-ok {
+        background: rgba(52, 211, 153, 0.12);
+        color: #6ee7b7;
+        border: 1px solid rgba(52, 211, 153, 0.25);
+      }
+      .chip-miss {
+        background: rgba(120, 130, 150, 0.08);
+        color: #6b7385;
+        border: 1px solid rgba(120, 130, 150, 0.18);
+      }
+      .chip-warn {
+        background: rgba(251, 191, 36, 0.1);
+        color: #fcd34d;
+        border: 1px solid rgba(251, 191, 36, 0.25);
+      }
+      .ver-dot {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 38px;
+        height: 22px;
+        padding: 0 6px;
+        border-radius: 6px;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 11px;
+        font-weight: 500;
+        margin: 2px;
+      }
+      .ver-ok {
+        background: rgba(45, 212, 191, 0.13);
+        color: var(--accent);
+        border: 1px solid rgba(45, 212, 191, 0.3);
+      }
+      .ver-empty {
+        background: rgba(251, 191, 36, 0.06);
+        color: #b97a0a;
+        border: 1px dashed rgba(251, 191, 36, 0.45);
+      }
+      .ver-latest {
+        background: rgba(45, 212, 191, 0.22);
+        color: #fff;
+        border: 1px solid var(--accent-strong);
+        box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.2);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        color: var(--text);
+        font-weight: 500;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .btn:hover {
+        border-color: var(--accent-strong);
+        color: var(--accent);
+      }
+      .btn-primary {
+        background: var(--accent-strong);
+        color: #0b0d10;
+        border-color: var(--accent-strong);
+      }
+      .btn-primary:hover {
+        background: var(--accent);
+        color: #0b0d10;
+      }
+      table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+      }
+      th {
+        background: var(--panel-2);
+        font-weight: 500;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-dim);
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+      tr:hover td {
+        background: rgba(255, 255, 255, 0.015);
+      }
+      .seq-row td {
+        background: rgba(94, 234, 212, 0.04);
+        border-top: 1px solid var(--border);
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--accent);
+      }
+      details > summary {
+        list-style: none;
+        cursor: pointer;
+      }
+      details > summary::-webkit-details-marker {
+        display: none;
+      }
+      .drop-zone.dragover {
+        border-color: var(--accent-strong);
+        background: rgba(45, 212, 191, 0.05);
+      }
+      .stat {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .stat-num {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 22px;
+        font-weight: 500;
+        color: var(--text);
+      }
+      .stat-label {
+        font-size: 11px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .bar {
+        height: 4px;
+        background: var(--border);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .bar > span {
+        display: block;
+        height: 100%;
+        background: var(--accent-strong);
+        transition: width 0.3s ease;
+      }
+      input[type="text"] {
+        background: var(--panel);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 12px;
+        outline: none;
+        font-size: 13px;
+        width: 240px;
+      }
+      input[type="text"]:focus {
+        border-color: var(--accent-strong);
+      }
+      .stage-label {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 10px;
+        color: var(--text-dim);
+        margin-right: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <div class="max-w-[1400px] mx-auto px-6 py-8">
+      <!-- Header -->
+      <header class="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div class="flex items-center gap-3">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect
+              x="3"
+              y="3"
+              width="26"
+              height="26"
+              rx="6"
+              stroke="currentColor"
+              stroke-width="2"
+              class="text-teal-400"
+            />
+            <path
+              d="M9 16 L14 21 L23 11"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-teal-400"
+            />
+          </svg>
+          <div>
+            <h1 class="text-xl font-bold tracking-tight">Animation Tracker</h1>
+            <p class="text-xs text-[var(--text-dim)] mono">
+              cloth / hair · OUT / WORK · версии
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <input
+            id="search"
+            type="text"
+            placeholder="Поиск по шоту / сиквенции..."
+          />
+          <label class="btn cursor-pointer" id="file-label">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Загрузить JSON
+            <input id="file" type="file" accept=".json" class="hidden" />
+          </label>
+          <button id="reload" class="btn-primary btn" title="Обновить данные">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path
+                d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+              />
+            </svg>
+            Обновить
+          </button>
+        </div>
+      </header>
+
+      <!-- Stats -->
+      <section
+        id="stats"
+        class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"
+        style="display: none"
+      >
+        <div class="panel p-4 stat">
+          <span class="stat-label">Сиквенций</span>
+          <span class="stat-num" id="stat-seq">0</span>
+        </div>
+        <div class="panel p-4 stat">
+          <span class="stat-label">Шотов</span>
+          <span class="stat-num" id="stat-shots">0</span>
+        </div>
+        <div class="panel p-4 stat">
+          <span class="stat-label">Готово / всего</span>
+          <span class="stat-num" id="stat-ratio">0 / 0</span>
+          <div class="bar mt-2"><span id="stat-bar" style="width: 0%"></span></div>
+        </div>
+        <div class="panel p-4 stat">
+          <span class="stat-label">Последнее сканирование</span>
+          <span class="stat-num mono" id="stat-time" style="font-size: 13px">—</span>
+        </div>
+      </section>
+
+      <!-- Drop zone / setup -->
+      <div
+        id="drop"
+        class="drop-zone panel p-10 text-center"
+        style="border: 2px dashed var(--border)"
+      >
+        <svg
+          class="mx-auto mb-3 text-[var(--text-dim)]"
+          width="42"
+          height="42"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+        >
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="12" y1="18" x2="12" y2="12" />
+          <line x1="9" y1="15" x2="15" y2="15" />
+        </svg>
+        <p class="text-base font-medium mb-1">Данных ещё нет</p>
+        <p class="text-sm text-[var(--text-dim)] mb-5">
+          Подключи GitHub Gist или перетащи файл progress.json
+        </p>
+
+        <div class="max-w-md mx-auto panel-2 p-4 text-left mb-4">
+          <div class="stage-label mb-2" style="margin-right:0">Gist ID или RAW URL</div>
+          <div class="flex gap-2">
+            <input
+              id="gist-input"
+              type="text"
+              style="width: 100%"
+              placeholder="напр. abc123def456 или https://gist.github..."
+            />
+            <button class="btn btn-primary" id="gist-load">Связать</button>
+          </div>
+          <p class="text-xs text-[var(--text-dim)] mt-2">
+            После привязки страница сама подтягивает свежие данные по кнопке «Обновить».
+          </p>
+        </div>
+
+        <p class="text-xs text-[var(--text-dim)] mono">
+          — или перетащи progress.json прямо сюда —
+        </p>
+      </div>
+
+      <!-- Legend -->
+      <div
+        id="legend"
+        class="mb-4 flex flex-wrap gap-3 items-center text-xs text-[var(--text-dim)]"
+        style="display: none"
+      >
+        <span class="ver-dot ver-ok">v003</span>
+        <span>есть файл</span>
+        <span class="ver-dot ver-empty">v004</span>
+        <span>папка пустая</span>
+        <span class="ver-dot ver-latest">v005</span>
+        <span>последняя версия</span>
+      </div>
+
+      <!-- Source indicator -->
+      <div id="source-bar" class="mb-3 text-xs text-[var(--text-dim)] flex items-center gap-2" style="display: none">
+        <span class="chip chip-ok" id="source-chip">connected</span>
+        <span id="source-text" class="mono"></span>
+        <button id="source-clear" class="text-[var(--text-dim)] hover:text-[var(--accent)] underline" style="font-size: 11px">отвязать</button>
+      </div>
+
+      <!-- Table -->
+      <div class="panel overflow-hidden" id="table-wrap" style="display: none">
+        <div class="overflow-x-auto" style="max-height: 70vh">
+          <table id="tbl">
+            <thead>
+              <tr>
+                <th style="width: 22%">Шот</th>
+                <th style="width: 19.5%">OUT · cloth</th>
+                <th style="width: 19.5%">OUT · hair</th>
+                <th style="width: 19.5%">WORK · cloth</th>
+                <th style="width: 19.5%">WORK · hair</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <footer class="mt-8 text-xs text-[var(--text-dim)] text-center">
+        Локальный агент сканирует сетевой шар, дашборд читает progress.json.
+        <br />Никакие данные никуда не отправляются — JSON загружается прямо в браузер.
+      </footer>
+    </div>
+
+    <script>
+      const $ = (sel) => document.querySelector(sel);
+      const STAGES = ["OUT", "WORK"];
+      const ASSETS = ["cloth", "hair"];
+      let gistId = null; // в текущей сессии
+
+      // Извлечь gist id из ввода: принимает ID, URL gist, или raw URL
+      function extractGistId(input) {
+        if (!input) return null;
+        input = input.trim();
+        // gist.githubusercontent.com/.../raw/...
+        let m = input.match(/gist\.github(?:usercontent)?\.com\/[^/]+\/([0-9a-f]{20,})/i);
+        if (m) return m[1];
+        // чистый ID
+        m = input.match(/^([0-9a-f]{20,})$/i);
+        if (m) return m[1];
+        return null;
+      }
+
+      async function loadFromGist(id) {
+        const url = `https://api.github.com/gists/${id}`;
+        try {
+          const r = await fetch(url, { cache: "no-store" });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const meta = await r.json();
+          // ищем первый .json файл внутри gist
+          const files = Object.values(meta.files || {});
+          const jsonFile = files.find((f) => /\.json$/i.test(f.filename)) || files[0];
+          if (!jsonFile) throw new Error("В gist нет файлов");
+          // если файл большой, API отдаёт truncated=true и raw_url
+          let text;
+          if (jsonFile.truncated && jsonFile.raw_url) {
+            const r2 = await fetch(jsonFile.raw_url, { cache: "no-store" });
+            text = await r2.text();
+          } else {
+            text = jsonFile.content;
+          }
+          const data = JSON.parse(text);
+          gistId = id;
+          updateSourceBar("gist", `Gist: ${id.slice(0, 8)}… · файл ${jsonFile.filename}`);
+          render(data);
+        } catch (err) {
+          alert("Не удалось загрузить из Gist: " + err.message + "\n\nПроверь что Gist public и ID верный.");
+        }
+      }
+
+      function updateSourceBar(kind, text) {
+        const bar = $("#source-bar");
+        bar.style.display = "flex";
+        $("#source-text").textContent = text;
+        $("#source-chip").textContent = kind === "gist" ? "GitHub Gist" : "локальный файл";
+      }
+
+      function pluralize(n, forms) {
+        // forms: [one, few, many] e.g. ['шот', 'шота', 'шотов']
+        const mod10 = n % 10;
+        const mod100 = n % 100;
+        if (mod10 === 1 && mod100 !== 11) return forms[0];
+        if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return forms[1];
+        return forms[2];
+      }
+      let lastData = null;
+      let lastFile = null;
+
+      function renderVersions(versions) {
+        if (!versions || versions.length === 0) {
+          return `<span class="text-xs text-[var(--text-dim)] mono">—</span>`;
+        }
+        const maxNum = Math.max(...versions.map((v) => v.num));
+        return versions
+          .map((v) => {
+            let cls = "ver-empty";
+            if (v.has_file) cls = v.num === maxNum ? "ver-latest" : "ver-ok";
+            const tip = v.has_file
+              ? `${v.file_count} файл(ов)${v.modified ? " · " + v.modified : ""}`
+              : "пустая папка";
+            return `<span class="ver-dot ${cls}" title="${tip}">${v.version}</span>`;
+          })
+          .join("");
+      }
+
+      function shotMatchesQuery(seqName, shotName, q) {
+        if (!q) return true;
+        const s = q.toLowerCase();
+        return (
+          seqName.toLowerCase().includes(s) ||
+          shotName.toLowerCase().includes(s)
+        );
+      }
+
+      function render(data) {
+        if (!data || !data.sequences) return;
+        lastData = data;
+
+        // Stats
+        $("#stats").style.display = "grid";
+        $("#legend").style.display = "flex";
+        $("#table-wrap").style.display = "block";
+        $("#drop").style.display = "none";
+
+        const s = data.summary || {};
+        $("#stat-seq").textContent = s.sequences || 0;
+        $("#stat-shots").textContent = s.shots || 0;
+        const ready = s.versions_ready || 0;
+        const total = s.versions_total || 0;
+        $("#stat-ratio").textContent = `${ready} / ${total}`;
+        const pct = total > 0 ? Math.round((ready / total) * 100) : 0;
+        $("#stat-bar").style.width = pct + "%";
+        $("#stat-time").textContent = data.scanned_at || "—";
+
+        // Table
+        const q = $("#search").value.trim();
+        const tbody = $("#tbody");
+        tbody.innerHTML = "";
+
+        data.sequences.forEach((seq) => {
+          const filteredShots = (seq.shots || []).filter((sh) =>
+            shotMatchesQuery(seq.name, sh.name, q),
+          );
+          if (q && filteredShots.length === 0) return;
+
+          // Sequence row
+          const seqRow = document.createElement("tr");
+          seqRow.className = "seq-row";
+          const noteHtml = seq.note
+            ? ` <span class="chip chip-warn">${seq.note}</span>`
+            : "";
+          const shotCount = (seq.shots || []).length;
+          const shotsLabel = pluralize(shotCount, ['шот', 'шота', 'шотов']);
+          seqRow.innerHTML = `<td colspan="5">${seq.name} <span class="text-xs text-[var(--text-dim)] font-normal ml-2">${shotCount} ${shotsLabel}</span>${noteHtml}</td>`;
+          tbody.appendChild(seqRow);
+
+          // Shot rows
+          filteredShots.forEach((shot) => {
+            const row = document.createElement("tr");
+            const cells = [];
+
+            // Shot name
+            const totalReady = STAGES.reduce(
+              (acc, st) =>
+                acc +
+                ASSETS.reduce(
+                  (a2, as) =>
+                    a2 +
+                    (shot.stages[st][as] || []).filter((v) => v.has_file)
+                      .length,
+                  0,
+                ),
+              0,
+            );
+            const totalAll = STAGES.reduce(
+              (acc, st) =>
+                acc +
+                ASSETS.reduce(
+                  (a2, as) => a2 + (shot.stages[st][as] || []).length,
+                  0,
+                ),
+              0,
+            );
+            cells.push(
+              `<td>
+                <div class="font-medium">${shot.name}</div>
+                <div class="text-xs text-[var(--text-dim)] mono mt-0.5">${totalReady}/${totalAll}</div>
+              </td>`,
+            );
+
+            STAGES.forEach((stage) => {
+              ASSETS.forEach((asset) => {
+                const vers = shot.stages[stage][asset] || [];
+                cells.push(`<td>${renderVersions(vers)}</td>`);
+              });
+            });
+
+            row.innerHTML = cells.join("");
+            tbody.appendChild(row);
+          });
+        });
+
+        if (tbody.children.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center text-[var(--text-dim)] py-8">Ничего не найдено по запросу.</td></tr>`;
+        }
+      }
+
+      function loadFile(file) {
+        lastFile = file;
+        gistId = null;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            updateSourceBar("file", `файл: ${file.name}`);
+            render(data);
+          } catch (err) {
+            alert("Не удалось прочитать JSON: " + err.message);
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      // File input
+      $("#file").addEventListener("change", (e) => {
+        if (e.target.files[0]) loadFile(e.target.files[0]);
+      });
+
+      // Drop zone
+      const drop = $("#drop");
+      ["dragenter", "dragover"].forEach((evt) =>
+        drop.addEventListener(evt, (e) => {
+          e.preventDefault();
+          drop.classList.add("dragover");
+        }),
+      );
+      ["dragleave", "drop"].forEach((evt) =>
+        drop.addEventListener(evt, (e) => {
+          e.preventDefault();
+          drop.classList.remove("dragover");
+        }),
+      );
+      drop.addEventListener("drop", (e) => {
+        const f = e.dataTransfer.files[0];
+        if (f) loadFile(f);
+      });
+
+      // Body-wide drop (after first file loaded)
+      document.body.addEventListener("dragover", (e) => e.preventDefault());
+      document.body.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const f = e.dataTransfer.files[0];
+        if (f && f.name.endsWith(".json")) loadFile(f);
+      });
+
+      // Reload button — обновляет из Gist или предлагает файл
+      $("#reload").addEventListener("click", () => {
+        if (gistId) {
+          loadFromGist(gistId);
+        } else {
+          $("#file").click();
+        }
+      });
+
+      // Привязка Gist
+      $("#gist-load").addEventListener("click", () => {
+        const id = extractGistId($("#gist-input").value);
+        if (!id) {
+          alert("Не удалось распознать Gist ID. Вставь URL gist'а или его ID.");
+          return;
+        }
+        // обновляем URL, чтобы при перезагрузке не вводить снова
+        const url = new URL(window.location.href);
+        url.searchParams.set("gist", id);
+        history.replaceState({}, "", url);
+        loadFromGist(id);
+      });
+      $("#gist-input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") $("#gist-load").click();
+      });
+
+      // Отвязка источника
+      $("#source-clear").addEventListener("click", () => {
+        gistId = null;
+        lastData = null;
+        const url = new URL(window.location.href);
+        url.searchParams.delete("gist");
+        history.replaceState({}, "", url);
+        $("#source-bar").style.display = "none";
+        $("#table-wrap").style.display = "none";
+        $("#stats").style.display = "none";
+        $("#legend").style.display = "none";
+        $("#drop").style.display = "block";
+      });
+
+      // Автоподъём gist из URL ?gist=...
+      (function bootFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get("gist");
+        if (id) loadFromGist(id);
+      })();
+
+      // Search
+      $("#search").addEventListener("input", () => {
+        if (lastData) render(lastData);
+      });
+    </script>
+  </body>
+</html>
