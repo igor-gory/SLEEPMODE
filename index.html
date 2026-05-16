@@ -220,6 +220,149 @@
       input[type="text"]:focus {
         border-color: var(--accent-strong);
       }
+      .shot-cell {
+        position: relative;
+      }
+      .shot-row {
+        position: relative;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+      }
+      .shot-row:hover {
+        background-color: rgba(94, 234, 212, 0.04);
+      }
+      .shot-row.copied {
+        background-color: rgba(52, 211, 153, 0.08);
+      }
+      .shot-name-wrap {
+        display: block;
+      }
+      .shot-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 2px;
+        min-height: 16px;
+      }
+      .shot-hint {
+        opacity: 0;
+        font-size: 11px;
+        color: var(--text-dim);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: opacity 0.15s ease, color 0.15s ease;
+        user-select: none;
+        white-space: nowrap;
+      }
+      .shot-row:hover .shot-hint {
+        opacity: 1;
+      }
+      .shot-row.copied .shot-hint {
+        opacity: 1;
+        color: var(--ok);
+      }
+      /* Custom tooltip */
+      #tooltip {
+        position: fixed;
+        z-index: 100;
+        pointer-events: none;
+        background: #0d1014;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        box-shadow:
+          0 10px 30px rgba(0, 0, 0, 0.5),
+          0 0 0 1px rgba(45, 212, 191, 0.08);
+        min-width: 320px;
+        max-width: 460px;
+        font-size: 12px;
+        line-height: 1.5;
+        opacity: 0;
+        transform: translateY(4px);
+        transition:
+          opacity 0.12s ease,
+          transform 0.12s ease;
+      }
+      #tooltip.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      #tooltip .tip-title {
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 2px;
+        font-size: 13px;
+      }
+      #tooltip .tip-subtitle {
+        color: var(--text-dim);
+        font-size: 11px;
+        margin-bottom: 10px;
+      }
+      #tooltip .tip-path {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 10.5px;
+        color: var(--accent);
+        background: rgba(45, 212, 191, 0.06);
+        padding: 6px 8px;
+        border-radius: 6px;
+        border: 1px solid rgba(45, 212, 191, 0.15);
+        margin-bottom: 10px;
+        word-break: break-all;
+      }
+      #tooltip .tip-grid {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 6px 12px;
+        font-size: 11.5px;
+      }
+      #tooltip .tip-grid .label {
+        color: var(--text-dim);
+        text-transform: uppercase;
+        font-size: 10px;
+        letter-spacing: 0.06em;
+        align-self: center;
+      }
+      #tooltip .tip-grid .ver {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        color: var(--accent);
+      }
+      #tooltip .tip-grid .date {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        color: var(--text-dim);
+        font-size: 10.5px;
+        text-align: right;
+      }
+      #tooltip .tip-hint {
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+        font-size: 10.5px;
+        color: var(--text-dim);
+      }
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--panel);
+        border: 1px solid var(--ok);
+        color: var(--ok);
+        padding: 10px 18px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 500;
+        opacity: 0;
+        transition:
+          opacity 0.2s ease,
+          transform 0.2s ease;
+        z-index: 200;
+        pointer-events: none;
+      }
+      .toast.visible {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
       .stage-label {
         font-family: "JetBrains Mono", ui-monospace, monospace;
         font-size: 10px;
@@ -268,7 +411,7 @@
             type="text"
             placeholder="Поиск по шоту / сиквенции..."
           />
-          <label class="btn cursor-pointer">
+          <label class="btn cursor-pointer" id="file-label">
             <svg
               width="14"
               height="14"
@@ -281,10 +424,10 @@
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
-            Загрузить progress.json
+            Загрузить JSON
             <input id="file" type="file" accept=".json" class="hidden" />
           </label>
-          <button id="reload" class="btn-primary btn" title="Перечитать файл">
+          <button id="reload" class="btn-primary btn" title="Обновить данные">
             <svg
               width="14"
               height="14"
@@ -329,16 +472,16 @@
         </div>
       </section>
 
-      <!-- Drop zone (initial state) -->
+      <!-- Drop zone / setup -->
       <div
         id="drop"
-        class="drop-zone panel p-12 text-center"
+        class="drop-zone panel p-10 text-center"
         style="border: 2px dashed var(--border)"
       >
         <svg
-          class="mx-auto mb-4 text-[var(--text-dim)]"
-          width="48"
-          height="48"
+          class="mx-auto mb-3 text-[var(--text-dim)]"
+          width="42"
+          height="42"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -349,12 +492,29 @@
           <line x1="12" y1="18" x2="12" y2="12" />
           <line x1="9" y1="15" x2="15" y2="15" />
         </svg>
-        <p class="text-base font-medium mb-1">Перетащите progress.json сюда</p>
-        <p class="text-sm text-[var(--text-dim)]">
-          или нажмите «Загрузить progress.json» в правом верхнем углу
+        <p class="text-base font-medium mb-1">Данных ещё нет</p>
+        <p class="text-sm text-[var(--text-dim)] mb-5">
+          Подключи GitHub Gist или перетащи файл progress.json
         </p>
-        <p class="text-xs text-[var(--text-dim)] mt-4 mono">
-          Файл генерируется агентом scan.py на вашей машине
+
+        <div class="max-w-md mx-auto panel-2 p-4 text-left mb-4">
+          <div class="stage-label mb-2" style="margin-right:0">Gist ID или RAW URL</div>
+          <div class="flex gap-2">
+            <input
+              id="gist-input"
+              type="text"
+              style="width: 100%"
+              placeholder="напр. abc123def456 или https://gist.github..."
+            />
+            <button class="btn btn-primary" id="gist-load">Связать</button>
+          </div>
+          <p class="text-xs text-[var(--text-dim)] mt-2">
+            После привязки страница сама подтягивает свежие данные по кнопке «Обновить».
+          </p>
+        </div>
+
+        <p class="text-xs text-[var(--text-dim)] mono">
+          — или перетащи progress.json прямо сюда —
         </p>
       </div>
 
@@ -370,6 +530,13 @@
         <span>папка пустая</span>
         <span class="ver-dot ver-latest">v005</span>
         <span>последняя версия</span>
+      </div>
+
+      <!-- Source indicator -->
+      <div id="source-bar" class="mb-3 text-xs text-[var(--text-dim)] flex items-center gap-2" style="display: none">
+        <span class="chip chip-ok" id="source-chip">connected</span>
+        <span id="source-text" class="mono"></span>
+        <button id="source-clear" class="text-[var(--text-dim)] hover:text-[var(--accent)] underline" style="font-size: 11px">отвязать</button>
       </div>
 
       <!-- Table -->
@@ -390,6 +557,9 @@
         </div>
       </div>
 
+      <div id="tooltip" role="tooltip"></div>
+      <div id="toast" class="toast"></div>
+
       <footer class="mt-8 text-xs text-[var(--text-dim)] text-center">
         Локальный агент сканирует сетевой шар, дашборд читает progress.json.
         <br />Никакие данные никуда не отправляются — JSON загружается прямо в браузер.
@@ -400,6 +570,54 @@
       const $ = (sel) => document.querySelector(sel);
       const STAGES = ["OUT", "WORK"];
       const ASSETS = ["cloth", "hair"];
+      let gistId = null; // в текущей сессии
+
+      // Извлечь gist id из ввода: принимает ID, URL gist, или raw URL
+      function extractGistId(input) {
+        if (!input) return null;
+        input = input.trim();
+        // gist.githubusercontent.com/.../raw/...
+        let m = input.match(/gist\.github(?:usercontent)?\.com\/[^/]+\/([0-9a-f]{20,})/i);
+        if (m) return m[1];
+        // чистый ID
+        m = input.match(/^([0-9a-f]{20,})$/i);
+        if (m) return m[1];
+        return null;
+      }
+
+      async function loadFromGist(id) {
+        const url = `https://api.github.com/gists/${id}`;
+        try {
+          const r = await fetch(url, { cache: "no-store" });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const meta = await r.json();
+          // ищем первый .json файл внутри gist
+          const files = Object.values(meta.files || {});
+          const jsonFile = files.find((f) => /\.json$/i.test(f.filename)) || files[0];
+          if (!jsonFile) throw new Error("В gist нет файлов");
+          // если файл большой, API отдаёт truncated=true и raw_url
+          let text;
+          if (jsonFile.truncated && jsonFile.raw_url) {
+            const r2 = await fetch(jsonFile.raw_url, { cache: "no-store" });
+            text = await r2.text();
+          } else {
+            text = jsonFile.content;
+          }
+          const data = JSON.parse(text);
+          gistId = id;
+          updateSourceBar("gist", `Gist: ${id.slice(0, 8)}… · файл ${jsonFile.filename}`);
+          render(data);
+        } catch (err) {
+          alert("Не удалось загрузить из Gist: " + err.message + "\n\nПроверь что Gist public и ID верный.");
+        }
+      }
+
+      function updateSourceBar(kind, text) {
+        const bar = $("#source-bar");
+        bar.style.display = "flex";
+        $("#source-text").textContent = text;
+        $("#source-chip").textContent = kind === "gist" ? "GitHub Gist" : "локальный файл";
+      }
 
       function pluralize(n, forms) {
         // forms: [one, few, many] e.g. ['шот', 'шота', 'шотов']
@@ -411,6 +629,31 @@
       }
       let lastData = null;
       let lastFile = null;
+
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        }[c]));
+      }
+      function escapeAttr(s) {
+        return String(s).replace(/"/g, "&quot;");
+      }
+
+      function formatDateTime(iso) {
+        if (!iso) return null;
+        // Работаем с ISO без таймзоны: 2026-05-16T14:23:10 → "16 мая, 14:23"
+        const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+        if (!m) return iso;
+        const [, y, mo, d, hh, mm] = m;
+        const months = [
+          "янв", "фев", "мар", "апр", "мая", "июн",
+          "июл", "авг", "сен", "окт", "ноя", "дек"
+        ];
+        const monthName = months[parseInt(mo, 10) - 1];
+        const now = new Date();
+        const yearPart = parseInt(y, 10) === now.getFullYear() ? "" : ` ${y}`;
+        return `${parseInt(d, 10)} ${monthName}${yearPart}, ${hh}:${mm}`;
+      }
 
       function renderVersions(versions) {
         if (!versions || versions.length === 0) {
@@ -483,9 +726,13 @@
           // Shot rows
           filteredShots.forEach((shot) => {
             const row = document.createElement("tr");
+            row.className = "shot-row";
+            row.dataset.shotIndex = JSON.stringify({
+              seq: seq.name,
+              shot: shot.name,
+            });
             const cells = [];
 
-            // Shot name
             const totalReady = STAGES.reduce(
               (acc, st) =>
                 acc +
@@ -507,10 +754,27 @@
                 ),
               0,
             );
+
+            const hasPath = !!shot.path;
+            const hintHtml = hasPath
+              ? `<span class="shot-hint">
+                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                   </svg>
+                   <span class="hint-text">кликни, чтобы скопировать путь</span>
+                 </span>`
+              : "";
+
             cells.push(
-              `<td>
-                <div class="font-medium">${shot.name}</div>
-                <div class="text-xs text-[var(--text-dim)] mono mt-0.5">${totalReady}/${totalAll}</div>
+              `<td class="shot-cell">
+                <div class="shot-name-wrap">
+                  <div class="font-medium">${escapeHtml(shot.name)}</div>
+                  <div class="shot-meta-row">
+                    <span class="text-xs text-[var(--text-dim)] mono">${totalReady}/${totalAll}</span>
+                    ${hintHtml}
+                  </div>
+                </div>
               </td>`,
             );
 
@@ -522,6 +786,9 @@
             });
 
             row.innerHTML = cells.join("");
+            // Сохраним полные данные шота на ряду для tooltip
+            row._shotData = shot;
+            row._seqName = seq.name;
             tbody.appendChild(row);
           });
         });
@@ -533,10 +800,12 @@
 
       function loadFile(file) {
         lastFile = file;
+        gistId = null;
         const reader = new FileReader();
         reader.onload = (e) => {
           try {
             const data = JSON.parse(e.target.result);
+            updateSourceBar("file", `файл: ${file.name}`);
             render(data);
           } catch (err) {
             alert("Не удалось прочитать JSON: " + err.message);
@@ -577,19 +846,194 @@
         if (f && f.name.endsWith(".json")) loadFile(f);
       });
 
-      // Reload button — re-read last file if available
+      // Reload button — обновляет из Gist или предлагает файл
       $("#reload").addEventListener("click", () => {
-        if (lastFile) {
-          // Re-open file picker so the user picks the fresh file from disk
-          $("#file").click();
+        if (gistId) {
+          loadFromGist(gistId);
         } else {
           $("#file").click();
         }
       });
 
+      // Привязка Gist
+      $("#gist-load").addEventListener("click", () => {
+        const id = extractGistId($("#gist-input").value);
+        if (!id) {
+          alert("Не удалось распознать Gist ID. Вставь URL gist'а или его ID.");
+          return;
+        }
+        // обновляем URL, чтобы при перезагрузке не вводить снова
+        const url = new URL(window.location.href);
+        url.searchParams.set("gist", id);
+        history.replaceState({}, "", url);
+        loadFromGist(id);
+      });
+      $("#gist-input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") $("#gist-load").click();
+      });
+
+      // Отвязка источника
+      $("#source-clear").addEventListener("click", () => {
+        gistId = null;
+        lastData = null;
+        const url = new URL(window.location.href);
+        url.searchParams.delete("gist");
+        history.replaceState({}, "", url);
+        $("#source-bar").style.display = "none";
+        $("#table-wrap").style.display = "none";
+        $("#stats").style.display = "none";
+        $("#legend").style.display = "none";
+        $("#drop").style.display = "block";
+      });
+
+      // Автоподъём gist из URL ?gist=...
+      (function bootFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get("gist");
+        if (id) loadFromGist(id);
+      })();
+
       // Search
       $("#search").addEventListener("input", () => {
         if (lastData) render(lastData);
+      });
+
+      // ===== Tooltip on shot hover =====
+      const tooltip = $("#tooltip");
+
+      function buildTooltipHtml(seqName, shot) {
+        const latestPerSlot = [];
+        STAGES.forEach((stage) => {
+          ASSETS.forEach((asset) => {
+            const vers = shot.stages[stage][asset] || [];
+            const ready = vers.filter((v) => v.has_file);
+            const latest = ready.length ? ready[ready.length - 1] : null;
+            latestPerSlot.push({
+              label: `${stage} · ${asset}`,
+              version: latest ? latest.version : "—",
+              date: latest ? formatDateTime(latest.modified) : "",
+            });
+          });
+        });
+
+        const rows = latestPerSlot
+          .map(
+            (s) => `
+            <span class="label">${s.label}</span>
+            <span class="ver">${s.version}</span>
+            <span class="date">${s.date || ""}</span>
+          `,
+          )
+          .join("");
+
+        const latestMod = shot.latest_modified
+          ? `Последняя правка: ${formatDateTime(shot.latest_modified)}`
+          : "Нет данных о модификации";
+
+        return `
+          <div class="tip-title">${escapeHtml(shot.name)}</div>
+          <div class="tip-subtitle">${escapeHtml(seqName)} · ${latestMod}</div>
+          ${shot.path ? `<div class="tip-path">${escapeHtml(shot.path)}</div>` : ""}
+          <div class="tip-grid">${rows}</div>
+          ${shot.path ? `<div class="tip-hint">→ клик по шоту копирует путь. В проводнике: Ctrl+L → Ctrl+V → Enter</div>` : ""}
+        `;
+      }
+
+      function positionTooltip(e) {
+        const pad = 14;
+        const rect = tooltip.getBoundingClientRect();
+        let x = e.clientX + 16;
+        let y = e.clientY + 16;
+        if (x + rect.width + pad > window.innerWidth) {
+          x = e.clientX - rect.width - 16;
+        }
+        if (y + rect.height + pad > window.innerHeight) {
+          y = window.innerHeight - rect.height - pad;
+        }
+        if (y < pad) y = pad;
+        if (x < pad) x = pad;
+        tooltip.style.left = x + "px";
+        tooltip.style.top = y + "px";
+      }
+
+      document.addEventListener("mouseover", (e) => {
+        const row = e.target.closest(".shot-row");
+        if (!row || !row._shotData) {
+          tooltip.classList.remove("visible");
+          return;
+        }
+        tooltip.innerHTML = buildTooltipHtml(row._seqName, row._shotData);
+        tooltip.classList.add("visible");
+        positionTooltip(e);
+      });
+      document.addEventListener("mousemove", (e) => {
+        if (tooltip.classList.contains("visible")) positionTooltip(e);
+      });
+      document.addEventListener("mouseout", (e) => {
+        if (!e.relatedTarget || !e.relatedTarget.closest(".shot-row")) {
+          tooltip.classList.remove("visible");
+        }
+      });
+
+      // ===== Copy path to clipboard =====
+      const toast = $("#toast");
+      function showToast(text, ok = true) {
+        toast.textContent = text;
+        toast.style.borderColor = ok ? "var(--ok)" : "#ef4444";
+        toast.style.color = ok ? "var(--ok)" : "#ef4444";
+        toast.classList.add("visible");
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => toast.classList.remove("visible"), 1800);
+      }
+
+      async function copyToClipboard(text) {
+        // Основной путь — modern clipboard API
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(text);
+            return true;
+          } catch (_) {
+            // фоллбэк ниже
+          }
+        }
+        // Fallback через временный textarea
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          const ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          return ok;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      document.addEventListener("click", async (e) => {
+        const row = e.target.closest(".shot-row");
+        if (!row || !row._shotData) return;
+        const path = row._shotData.path;
+        if (!path) {
+          showToast("У шота нет пути", false);
+          return;
+        }
+        const ok = await copyToClipboard(path);
+        if (ok) {
+          row.classList.add("copied");
+          setTimeout(() => row.classList.remove("copied"), 1200);
+          const hintText = row.querySelector(".hint-text");
+          if (hintText) {
+            const orig = hintText.textContent;
+            hintText.textContent = "скопировано";
+            setTimeout(() => { hintText.textContent = orig; }, 1200);
+          }
+          showToast("Путь скопирован");
+        } else {
+          showToast("Не удалось скопировать", false);
+        }
       });
     </script>
   </body>
