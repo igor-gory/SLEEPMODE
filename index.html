@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Animation Progress Tracker</title>
-    <meta
-      name="description"
-      content="Трекер прогресса cloth/hair версий по сиквенциям и шотам."
-    />
+    <meta name="description" content="Трекер прогресса cloth/hair/sim версий по сиквенциям, шотам и симуляциям." />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://api.fontshare.com" />
     <link
@@ -27,252 +24,277 @@
         --ok: #34d399;
         --miss: #4a5160;
         --warn: #fbbf24;
+        --danger: #f87171;
+        --danger-strong: #ef4444;
       }
-      html,
-      body {
+      html, body {
         background: var(--bg);
         color: var(--text);
-        font-family:
-          "Satoshi",
-          ui-sans-serif,
-          system-ui,
-          -apple-system,
-          sans-serif;
+        font-family: "Satoshi", ui-sans-serif, system-ui, -apple-system, sans-serif;
         font-feature-settings: "ss01", "cv11";
       }
-      .mono {
-        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-      }
-      .panel {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-      }
-      .panel-2 {
-        background: var(--panel-2);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-      }
+      .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace; }
+      .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+      .panel-2 { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; }
+
       .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 2px 8px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 500;
-        line-height: 1.4;
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 2px 8px; border-radius: 999px;
+        font-size: 11px; font-weight: 500; line-height: 1.4;
       }
-      .chip-ok {
-        background: rgba(52, 211, 153, 0.12);
-        color: #6ee7b7;
-        border: 1px solid rgba(52, 211, 153, 0.25);
-      }
-      .chip-miss {
-        background: rgba(120, 130, 150, 0.08);
-        color: #6b7385;
-        border: 1px solid rgba(120, 130, 150, 0.18);
-      }
-      .chip-warn {
-        background: rgba(251, 191, 36, 0.1);
-        color: #fcd34d;
-        border: 1px solid rgba(251, 191, 36, 0.25);
-      }
+      .chip-ok { background: rgba(52, 211, 153, 0.12); color: #6ee7b7; border: 1px solid rgba(52, 211, 153, 0.25); }
+      .chip-miss { background: rgba(120, 130, 150, 0.08); color: #6b7385; border: 1px solid rgba(120, 130, 150, 0.18); }
+      .chip-warn { background: rgba(251, 191, 36, 0.1); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.25); }
+      .chip-danger { background: rgba(239, 68, 68, 0.12); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+
       .ver-dot {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 38px;
-        height: 22px;
-        padding: 0 6px;
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 38px; height: 22px; padding: 0 6px;
         border-radius: 6px;
         font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 11px;
-        font-weight: 500;
-        margin: 2px;
-      }
-      .ver-ok {
-        background: rgba(45, 212, 191, 0.13);
-        color: var(--accent);
-        border: 1px solid rgba(45, 212, 191, 0.3);
-      }
-      .ver-empty {
-        background: rgba(251, 191, 36, 0.06);
-        color: #b97a0a;
-        border: 1px dashed rgba(251, 191, 36, 0.45);
-      }
-      .ver-latest {
-        background: rgba(45, 212, 191, 0.22);
-        color: #fff;
-        border: 1px solid var(--accent-strong);
-        box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.2);
-      }
-      .ver-broken {
-        background: rgba(248, 113, 113, 0.12);
-        color: #fda4a4;
-        border: 1px dashed rgba(248, 113, 113, 0.55);
-      }
-      .ver-dot {
+        font-size: 11px; font-weight: 500; margin: 2px;
+        position: relative;
         cursor: pointer;
+        user-select: none;
       }
-      /* Ячейка «OUT + WORK» в одной колонке */
+      .ver-ok { background: rgba(45, 212, 191, 0.13); color: var(--accent); border: 1px solid rgba(45, 212, 191, 0.3); }
+      .ver-empty { background: rgba(251, 191, 36, 0.06); color: #b97a0a; border: 1px dashed rgba(251, 191, 36, 0.45); }
+      .ver-latest { background: rgba(45, 212, 191, 0.22); color: #fff; border: 1px solid var(--accent-strong); box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.2); }
+      .ver-broken { background: rgba(239, 68, 68, 0.12); color: #fca5a5; border: 1px dashed var(--danger); }
+      .ver-broken.ver-latest { border-style: solid; }
+      .ver-dot:hover { transform: translateY(-1px); }
+
+      /* Объединённая ячейка OUT|WORK для одного ассета */
       .asset-cell {
         display: grid;
-        grid-template-columns: 1fr 1px 1fr;
-        gap: 8px;
-        align-items: start;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: stretch;
+        gap: 6px;
       }
-      .asset-cell .divider {
+      .asset-stage {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-height: 32px;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      .stage-tag {
+        font-size: 9.5px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: 2px;
+      }
+      .asset-stage.stage-out { background: rgba(94, 234, 212, 0.04); }
+      .asset-stage.stage-work { background: rgba(255, 255, 255, 0.02); }
+      .asset-divider {
         width: 1px;
         background: var(--border);
         align-self: stretch;
       }
-      .asset-stage {
-        min-width: 0;
-      }
-      .asset-stage .stage-tag {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 9.5px;
-        letter-spacing: 0.08em;
-        color: var(--text-dim);
-        text-transform: uppercase;
-        margin-bottom: 3px;
-        display: block;
-      }
-      .asset-stage .versions {
+      .versions-wrap {
         display: flex;
         flex-wrap: wrap;
       }
-      /* Flipbook кельтон и кнопка */
-      .flip-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 5px 9px;
-        border-radius: 6px;
-        border: 1px solid var(--border);
-        background: var(--panel-2);
-        color: var(--text);
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 11px;
-        cursor: pointer;
-        transition: all 0.15s ease;
+
+      .variant-block {
+        margin: 2px 0;
+        padding: 2px 6px;
+        border-left: 2px solid var(--border);
       }
-      .flip-btn:hover {
+      .variant-name {
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-right: 6px;
+      }
+      .variant-name.variant-root {
+        color: var(--accent);
+      }
+
+      .btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 8px 14px; border-radius: 8px;
+        border: 1px solid var(--border); background: var(--panel-2);
+        color: var(--text); font-weight: 500; font-size: 13px;
+        cursor: pointer; transition: all 0.15s ease;
+      }
+      .btn:hover { border-color: var(--accent-strong); color: var(--accent); }
+      .btn-primary { background: var(--accent-strong); color: #0b0d10; border-color: var(--accent-strong); }
+      .btn-primary:hover { background: var(--accent); color: #0b0d10; }
+      .btn-sm { padding: 4px 8px; font-size: 11px; gap: 4px; }
+
+      .tab-btn {
+        padding: 8px 16px; border-radius: 8px;
+        background: transparent; border: 1px solid transparent;
+        color: var(--text-dim); font-weight: 500; font-size: 13px;
+        cursor: pointer; transition: all 0.15s ease;
+      }
+      .tab-btn:hover { color: var(--text); }
+      .tab-btn.active {
+        background: var(--panel-2);
         border-color: var(--accent-strong);
         color: var(--accent);
       }
-      .flip-btn svg { flex-shrink: 0; }
-      .flip-empty {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 11px;
-        color: var(--text-dim);
+
+      /* Таблица — НЕ скроллится сама, скроллится вся страница */
+      table { border-collapse: separate; border-spacing: 0; width: 100%; }
+      th, td {
+        text-align: left; padding: 10px 14px;
+        border-bottom: 1px solid var(--border); vertical-align: middle;
       }
-      /* Пиллы статусов */
-      .status-cell {
-        display: flex;
-        gap: 4px;
-        flex-wrap: nowrap;
+      th {
+        background: var(--panel-2); font-weight: 500; font-size: 12px;
+        text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim);
       }
-      .status-pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        border-radius: 7px;
-        border: 1px solid var(--border);
+      /* Прилипают только заголовки в шапке таблицы */
+      thead th {
+        position: sticky; top: 0; z-index: 2;
+      }
+      .seq-row td {
+        background: rgba(94, 234, 212, 0.06);
+        border-top: 1px solid var(--border);
+        font-weight: 600; font-size: 13px; color: var(--accent);
+        padding-top: 14px; padding-bottom: 6px;
+      }
+      /* Подзаголовок колонок под строкой сиквенции */
+      .seq-subhead td {
         background: var(--panel-2);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
         color: var(--text-dim);
+        font-weight: 500;
+        padding: 6px 14px;
+        border-top: none;
+      }
+
+      /* Shot row */
+      .shot-cell { position: relative; }
+      .shot-row {
+        position: relative;
         cursor: pointer;
+        transition: background-color 0.15s ease, opacity 0.2s ease;
+      }
+      .shot-row:hover { background-color: rgba(94, 234, 212, 0.04); }
+      .shot-row.copied { background-color: rgba(52, 211, 153, 0.08); }
+      .shot-row.delivered { opacity: 0.45; }
+      .shot-row.delivered:hover { opacity: 0.7; }
+      .shot-name-wrap { display: block; }
+      .shot-meta-row {
+        display: flex; align-items: center; gap: 10px;
+        margin-top: 2px; min-height: 16px;
+      }
+      .shot-hint {
+        opacity: 0; font-size: 11px; color: var(--text-dim);
+        display: inline-flex; align-items: center; gap: 4px;
+        transition: opacity 0.15s ease, color 0.15s ease;
+        user-select: none; white-space: nowrap;
+      }
+      .shot-row:hover .shot-hint { opacity: 1; }
+      .shot-row.copied .shot-hint { opacity: 1; color: var(--ok); }
+
+      /* Status pills — монохромные, ч/б */
+      .status-cell { display: flex; gap: 4px; }
+      .status-pill {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 28px; height: 28px; border-radius: 6px;
+        background: var(--panel-2); border: 1px solid var(--border);
+        color: var(--text-dim); cursor: pointer;
         transition: all 0.15s ease;
-        padding: 0;
+        user-select: none;
       }
       .status-pill:hover {
-        border-color: var(--accent-strong);
+        border-color: var(--text);
         color: var(--text);
       }
       .status-pill.active {
-        border-color: var(--accent-strong);
-        color: var(--accent);
-        background: rgba(45, 212, 191, 0.12);
+        background: var(--text);
+        border-color: var(--text);
+        color: var(--bg);
       }
       .status-pill.locked {
-        cursor: not-allowed;
-        opacity: 0.45;
+        opacity: 0.45; cursor: not-allowed;
       }
-      .status-pill svg { width: 14px; height: 14px; }
-      /* Сданный шот — вся строка затемнена */
-      .shot-row.delivered td {
-        background: rgba(255, 255, 255, 0.015);
+      .status-pill.locked:hover {
+        border-color: var(--border);
         color: var(--text-dim);
       }
-      .shot-row.delivered .ver-dot {
-        opacity: 0.5;
+      .status-pill.saving {
+        opacity: 0.6;
       }
-      .shot-row.delivered:hover td {
-        background: rgba(255, 255, 255, 0.03);
+
+      /* Flipbook */
+      .flipbook-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        gap: 4px; padding: 4px 10px;
+        border-radius: 6px;
+        background: rgba(94, 234, 212, 0.08);
+        border: 1px solid rgba(45, 212, 191, 0.35);
+        color: var(--accent);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px; cursor: pointer;
+        transition: all 0.15s ease;
       }
-      /* Тултип версии (кликабельный) */
-      #verTooltip {
+      .flipbook-btn:hover {
+        background: rgba(94, 234, 212, 0.18);
+        border-color: var(--accent-strong);
+      }
+
+      /* Карточка версии (по клику) */
+      #verCard {
         position: fixed;
-        z-index: 110;
+        z-index: 1500;
         background: #0d1014;
-        border: 1px solid var(--border);
+        border: 1px solid var(--accent-strong);
         border-radius: 10px;
         padding: 12px 14px;
-        min-width: 280px;
+        min-width: 290px;
         max-width: 420px;
         font-size: 12px;
-        line-height: 1.45;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(45, 212, 191, 0.08);
+        box-shadow: 0 18px 40px rgba(0,0,0,0.6);
         opacity: 0;
         transform: translateY(4px);
         transition: opacity 0.12s ease, transform 0.12s ease;
         pointer-events: none;
       }
-      #verTooltip.visible {
+      #verCard.visible {
         opacity: 1;
         transform: translateY(0);
         pointer-events: auto;
       }
-      #verTooltip .vt-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-bottom: 8px;
+      #verCard .vc-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 8px; margin-bottom: 8px;
       }
-      #verTooltip .vt-title {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
+      #verCard .vc-title {
+        font-family: "JetBrains Mono", monospace;
         font-size: 13px;
         color: var(--text);
       }
-      #verTooltip .vt-badge {
+      #verCard .vc-badge {
         font-size: 10px;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: var(--text-dim);
       }
-      #verTooltip .vt-badge.broken {
-        color: #fda4a4;
+      #verCard .vc-badge.broken {
+        color: var(--danger);
       }
-      #verTooltip .vt-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        font-size: 11.5px;
-        margin-bottom: 4px;
+      #verCard .vc-row {
+        display: flex; justify-content: space-between;
+        gap: 12px; font-size: 11.5px; margin-bottom: 4px;
       }
-      #verTooltip .vt-row .k {
-        color: var(--text-dim);
-      }
-      #verTooltip .vt-row .v {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
+      #verCard .vc-row .k { color: var(--text-dim); }
+      #verCard .vc-row .v {
+        font-family: "JetBrains Mono", monospace;
         color: var(--text);
       }
-      #verTooltip .vt-path {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
+      #verCard .vc-path {
+        font-family: "JetBrains Mono", monospace;
         font-size: 10.5px;
         color: var(--accent);
         background: rgba(45, 212, 191, 0.06);
@@ -282,1455 +304,1061 @@
         margin: 8px 0;
         word-break: break-all;
       }
-      #verTooltip .vt-copy {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 10px;
-        border-radius: 6px;
+      #verCard .vc-copy {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 10px; border-radius: 6px;
         border: 1px solid var(--border);
         background: var(--panel-2);
         color: var(--text);
         font-size: 11.5px;
-        cursor: pointer;
-        width: 100%;
+        cursor: pointer; width: 100%;
         justify-content: center;
       }
-      #verTooltip .vt-copy:hover {
+      #verCard .vc-copy:hover {
         border-color: var(--accent-strong);
         color: var(--accent);
       }
-      /* Модальное окно видео */
-      .modal-backdrop {
+
+      /* Toast */
+      .toast {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        background: var(--panel); border: 1px solid var(--accent-strong);
+        color: var(--accent); padding: 10px 18px; border-radius: 8px;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+        font-weight: 500; font-size: 13px;
+        opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+        z-index: 2000;
+      }
+      .toast.visible { opacity: 1; }
+      .toast.err { border-color: var(--danger); color: var(--danger); }
+
+      /* Modal */
+      .modal-overlay {
         position: fixed; inset: 0;
-        background: rgba(0,0,0,0.7);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        z-index: 300;
+        background: rgba(0,0,0,0.85);
+        display: none; align-items: center; justify-content: center;
+        z-index: 3000; padding: 24px;
       }
-      .modal-backdrop.visible { display: flex; }
+      .modal-overlay.visible { display: flex; }
       .modal-box {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 16px;
-        max-width: 90vw;
-        max-height: 90vh;
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: 12px; max-width: 90vw; max-height: 90vh;
+        padding: 20px; display: flex; flex-direction: column; gap: 12px;
       }
-      .modal-box video {
-        max-width: 80vw;
-        max-height: 70vh;
-        border-radius: 8px;
-        display: block;
-      }
-      .modal-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 10px;
-        gap: 12px;
-      }
-      .modal-title {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 12px;
-        color: var(--accent);
-        word-break: break-all;
-      }
+      .modal-title { font-weight: 600; font-size: 16px; }
       .modal-close {
-        background: none;
-        border: none;
-        color: var(--text-dim);
-        font-size: 22px;
-        cursor: pointer;
-        line-height: 1;
+        position: absolute; top: 16px; right: 16px;
+        background: var(--panel-2); border: 1px solid var(--border);
+        border-radius: 6px; padding: 6px 12px;
+        color: var(--text); cursor: pointer; font-size: 13px;
       }
-      .modal-fallback {
-        font-size: 12px;
-        color: var(--text-dim);
-        margin-top: 10px;
-        text-align: center;
+      .modal-close:hover { border-color: var(--danger); color: var(--danger); }
+      .video-player { max-width: 80vw; max-height: 70vh; background: #000; border-radius: 8px; }
+
+      /* Stats */
+      .stat { display: flex; flex-direction: column; gap: 2px; }
+      .stat-num { font-family: "JetBrains Mono", monospace; font-size: 22px; font-weight: 500; color: var(--text); }
+      .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+      .bar { height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; }
+      .bar > span { display: block; height: 100%; background: var(--accent-strong); transition: width 0.3s ease; }
+
+      input[type="text"], input[type="password"] {
+        background: var(--panel); color: var(--text);
+        border: 1px solid var(--border); border-radius: 8px;
+        padding: 8px 12px; outline: none; font-size: 13px;
       }
-      .token-input {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 12px;
-      }
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 14px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        background: var(--panel-2);
-        color: var(--text);
-        font-weight: 500;
-        font-size: 13px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-      }
-      .btn:hover {
+      input[type="text"]:focus, input[type="password"]:focus {
         border-color: var(--accent-strong);
-        color: var(--accent);
-      }
-      .btn-primary {
-        background: var(--accent-strong);
-        color: #0b0d10;
-        border-color: var(--accent-strong);
-      }
-      .btn-primary:hover {
-        background: var(--accent);
-        color: #0b0d10;
-      }
-      table {
-        border-collapse: separate;
-        border-spacing: 0;
-        width: 100%;
-      }
-      th,
-      td {
-        text-align: left;
-        padding: 10px 14px;
-        border-bottom: 1px solid var(--border);
-        vertical-align: middle;
-      }
-      th {
-        background: var(--panel-2);
-        font-weight: 500;
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--text-dim);
-        position: sticky;
-        top: 0;
-        z-index: 1;
-      }
-      tr:hover td {
-        background: rgba(255, 255, 255, 0.015);
-      }
-      .seq-row td {
-        background: rgba(94, 234, 212, 0.04);
-        border-top: 1px solid var(--border);
-        font-weight: 600;
-        font-size: 13px;
-        color: var(--accent);
-      }
-      details > summary {
-        list-style: none;
-        cursor: pointer;
-      }
-      details > summary::-webkit-details-marker {
-        display: none;
       }
       .drop-zone.dragover {
         border-color: var(--accent-strong);
         background: rgba(45, 212, 191, 0.05);
       }
-      .stat {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-      .stat-num {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 22px;
-        font-weight: 500;
-        color: var(--text);
-      }
-      .stat-label {
-        font-size: 11px;
-        color: var(--text-dim);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
-      .bar {
-        height: 4px;
-        background: var(--border);
-        border-radius: 999px;
-        overflow: hidden;
-      }
-      .bar > span {
-        display: block;
-        height: 100%;
-        background: var(--accent-strong);
-        transition: width 0.3s ease;
-      }
-      input[type="text"] {
-        background: var(--panel);
-        color: var(--text);
-        border: 1px solid var(--border);
+
+      /* Sim cards */
+      .sim-asset {
+        margin-top: 8px; padding: 8px 12px;
+        background: var(--panel-2); border: 1px solid var(--border);
         border-radius: 8px;
-        padding: 8px 12px;
-        outline: none;
-        font-size: 13px;
-        width: 240px;
       }
-      input[type="text"]:focus {
-        border-color: var(--accent-strong);
+      .sim-asset-title {
+        font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+        color: var(--text-dim); margin-bottom: 6px;
       }
-      .shot-cell {
-        position: relative;
+      .sim-file {
+        display: flex; align-items: center; gap: 8px;
+        padding: 4px 0; font-size: 12px;
+        font-family: "JetBrains Mono", monospace;
       }
-      .shot-row {
-        position: relative;
-        cursor: pointer;
-        transition: background-color 0.15s ease;
-      }
-      .shot-row:hover {
-        background-color: rgba(94, 234, 212, 0.04);
-      }
-      .shot-row.copied {
-        background-color: rgba(52, 211, 153, 0.08);
-      }
-      .shot-name-wrap {
-        display: block;
-      }
-      .shot-meta-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 2px;
-        min-height: 16px;
-      }
-      .shot-hint {
-        opacity: 0;
-        font-size: 11px;
-        color: var(--text-dim);
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        transition: opacity 0.15s ease, color 0.15s ease;
-        user-select: none;
-        white-space: nowrap;
-      }
-      .shot-row:hover .shot-hint {
-        opacity: 1;
-      }
-      .shot-row.copied .shot-hint {
-        opacity: 1;
-        color: var(--ok);
-      }
-      /* Custom tooltip */
-      #tooltip {
-        position: fixed;
-        z-index: 100;
-        pointer-events: none;
-        background: #0d1014;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 12px 14px;
-        box-shadow:
-          0 10px 30px rgba(0, 0, 0, 0.5),
-          0 0 0 1px rgba(45, 212, 191, 0.08);
-        min-width: 320px;
-        max-width: 460px;
-        font-size: 12px;
-        line-height: 1.5;
-        opacity: 0;
-        transform: translateY(4px);
-        transition:
-          opacity 0.12s ease,
-          transform 0.12s ease;
-      }
-      #tooltip.visible {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      #tooltip .tip-title {
-        font-weight: 600;
-        color: var(--text);
-        margin-bottom: 2px;
-        font-size: 13px;
-      }
-      #tooltip .tip-subtitle {
-        color: var(--text-dim);
-        font-size: 11px;
-        margin-bottom: 10px;
-      }
-      #tooltip .tip-path {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 10.5px;
-        color: var(--accent);
-        background: rgba(45, 212, 191, 0.06);
-        padding: 6px 8px;
-        border-radius: 6px;
-        border: 1px solid rgba(45, 212, 191, 0.15);
-        margin-bottom: 10px;
-        word-break: break-all;
-      }
-      #tooltip .tip-grid {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        gap: 6px 12px;
-        font-size: 11.5px;
-      }
-      #tooltip .tip-grid .label {
-        color: var(--text-dim);
-        text-transform: uppercase;
-        font-size: 10px;
-        letter-spacing: 0.06em;
-        align-self: center;
-      }
-      #tooltip .tip-grid .ver {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        color: var(--accent);
-      }
-      #tooltip .tip-grid .date {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        color: var(--text-dim);
-        font-size: 10.5px;
-        text-align: right;
-      }
-      #tooltip .tip-hint {
-        margin-top: 10px;
-        padding-top: 8px;
-        border-top: 1px solid var(--border);
-        font-size: 10.5px;
-        color: var(--text-dim);
-      }
-      .toast {
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%) translateY(20px);
-        background: var(--panel);
-        border: 1px solid var(--ok);
-        color: var(--ok);
-        padding: 10px 18px;
-        border-radius: 999px;
-        font-size: 13px;
-        font-weight: 500;
-        opacity: 0;
-        transition:
-          opacity 0.2s ease,
-          transform 0.2s ease;
-        z-index: 200;
-        pointer-events: none;
-      }
-      .toast.visible {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-      .stage-label {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 10px;
-        color: var(--text-dim);
-        margin-right: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
+      .sim-file.broken { color: var(--danger); }
     </style>
   </head>
   <body class="min-h-screen">
-    <div class="max-w-[1400px] mx-auto px-6 py-8">
+    <div class="max-w-7xl mx-auto p-6">
+
       <!-- Header -->
-      <header class="flex items-center justify-between mb-6 flex-wrap gap-4">
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div class="flex items-center gap-3">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <rect
-              x="3"
-              y="3"
-              width="26"
-              height="26"
-              rx="6"
-              stroke="currentColor"
-              stroke-width="2"
-              class="text-teal-400"
-            />
-            <path
-              d="M9 16 L14 21 L23 11"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-teal-400"
-            />
-          </svg>
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: rgba(45,212,191,0.15); border: 1px solid var(--accent-strong);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent)">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
           <div>
-            <h1 class="text-xl font-bold tracking-tight">Animation Tracker</h1>
-            <p class="text-xs text-[var(--text-dim)] mono">
-              cloth / hair · OUT / WORK · версии
-            </p>
+            <h1 class="text-2xl font-bold">Animation Tracker</h1>
+            <div class="text-xs mono" style="color: var(--text-dim);">cloth · hair · flipbooks · simulations</div>
           </div>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-          <input
-            id="search"
-            type="text"
-            placeholder="Поиск по шоту / сиквенции..."
-          />
-          <label class="btn cursor-pointer" id="file-label">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
+          <input type="text" id="search" placeholder="Поиск по шоту / сиквенции…" />
+          <button class="btn" id="loadJsonBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Загрузить JSON
-            <input id="file" type="file" accept=".json" class="hidden" />
-          </label>
-          <button id="token-btn" class="btn" title="Настроить GitHub-токен для статусов">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-            <span id="token-state">Токен</span>
           </button>
-          <button id="reload" class="btn-primary btn" title="Обновить данные">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <polyline points="23 4 23 10 17 10" />
-              <polyline points="1 20 1 14 7 14" />
-              <path
-                d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-              />
-            </svg>
+          <input type="file" id="fileInput" accept=".json" class="hidden" />
+          <button class="btn btn-primary" id="refreshBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             Обновить
           </button>
         </div>
-      </header>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex items-center gap-2 mb-4">
+        <button class="tab-btn active" data-tab="anim" id="tabAnim">Анимации</button>
+        <button class="tab-btn" data-tab="sim" id="tabSim">Симуляции</button>
+        <div class="flex-1"></div>
+        <div id="dataSourceBadge" class="text-xs mono" style="color: var(--text-dim);"></div>
+        <div id="scannedAtBadge" class="text-xs mono" style="color: var(--text-dim);" title="Время последнего сканирования"></div>
+      </div>
 
       <!-- Stats -->
-      <section
-        id="stats"
-        class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"
-        style="display: none"
-      >
-        <div class="panel p-4 stat">
-          <span class="stat-label">Сиквенций</span>
-          <span class="stat-num" id="stat-seq">0</span>
-        </div>
-        <div class="panel p-4 stat">
-          <span class="stat-label">Шотов готово</span>
-          <span class="stat-num" id="stat-shots">0 / 0</span>
-          <div class="bar mt-2"><span id="stat-bar" style="width: 0%"></span></div>
-        </div>
-        <div class="panel p-4 stat">
-          <span class="stat-label">Версии в OUT/WORK</span>
-          <span class="stat-num" id="stat-ratio">0 / 0</span>
-        </div>
-        <div class="panel p-4 stat">
-          <span class="stat-label">Последнее сканирование</span>
-          <span class="stat-num mono" id="stat-time" style="font-size: 13px">—</span>
-        </div>
-      </section>
-
-      <!-- Drop zone / setup -->
-      <div
-        id="drop"
-        class="drop-zone panel p-10 text-center"
-        style="border: 2px dashed var(--border)"
-      >
-        <svg
-          class="mx-auto mb-3 text-[var(--text-dim)]"
-          width="42"
-          height="42"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-        >
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="12" y1="18" x2="12" y2="12" />
-          <line x1="9" y1="15" x2="15" y2="15" />
-        </svg>
-        <p class="text-base font-medium mb-1">Данных ещё нет</p>
-        <p class="text-sm text-[var(--text-dim)] mb-5">
-          Подключи GitHub Gist или перетащи файл progress.json
-        </p>
-
-        <div class="max-w-md mx-auto panel-2 p-4 text-left mb-4">
-          <div class="stage-label mb-2" style="margin-right:0">Gist ID или RAW URL</div>
-          <div class="flex gap-2">
-            <input
-              id="gist-input"
-              type="text"
-              style="width: 100%"
-              placeholder="напр. abc123def456 или https://gist.github..."
-            />
-            <button class="btn btn-primary" id="gist-load">Связать</button>
-          </div>
-          <p class="text-xs text-[var(--text-dim)] mt-2">
-            После привязки страница сама подтягивает свежие данные по кнопке «Обновить».
-          </p>
-        </div>
-
-        <p class="text-xs text-[var(--text-dim)] mono">
-          — или перетащи progress.json прямо сюда —
-        </p>
-      </div>
+      <div id="statsBlock" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5"></div>
 
       <!-- Legend -->
-      <div
-        id="legend"
-        class="mb-4 flex flex-wrap gap-3 items-center text-xs text-[var(--text-dim)]"
-        style="display: none"
-      >
-        <span class="ver-dot ver-ok">v003</span>
-        <span>есть файл</span>
-        <span class="ver-dot ver-latest">v005</span>
-        <span>последняя</span>
-        <span class="ver-dot ver-broken">v004</span>
-        <span>битая (&lt; 1 MB)</span>
-        <span class="ver-dot ver-empty">v002</span>
-        <span>пустая</span>
-        <span class="text-[var(--text-dim)]">· клик по версии — детали и копирование пути</span>
+      <div class="flex items-center gap-3 flex-wrap mb-4 text-xs" style="color: var(--text-dim);">
+        <span class="ver-dot ver-ok">v003</span><span>есть файл</span>
+        <span class="ver-dot ver-empty">v004</span><span>папка пустая</span>
+        <span class="ver-dot ver-broken">v005</span><span>битая (&lt; 1 MB)</span>
+        <span class="ver-dot ver-latest">v006</span><span>последняя</span>
+        <span class="mx-2">·</span>
+        <span style="color: var(--text-dim);">клик по версии — детали и копирование пути</span>
       </div>
 
-      <!-- Source indicator -->
-      <div id="source-bar" class="mb-3 text-xs text-[var(--text-dim)] flex items-center gap-2" style="display: none">
-        <span class="chip chip-ok" id="source-chip">connected</span>
-        <span id="source-text" class="mono"></span>
-        <button id="source-clear" class="text-[var(--text-dim)] hover:text-[var(--accent)] underline" style="font-size: 11px">отвязать</button>
+      <!-- Status legend + Gist controls -->
+      <div class="flex items-center gap-3 flex-wrap mb-4 text-xs" style="color: var(--text-dim);">
+        <span class="status-pill active" style="cursor: default;" title="Анимирован">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+        </span><span>анимирован</span>
+        <span class="status-pill active" style="cursor: default;" title="Засимулирован">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-3 5-3 7 0s5 3 7 0 4-1 4 0"></path><path d="M3 18c2-3 5-3 7 0s5 3 7 0 4-1 4 0"></path></svg>
+        </span><span>засимулирован</span>
+        <span class="status-pill active" style="cursor: default;" title="Сдан">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </span><span>сдан (строка затемняется)</span>
+        <span class="mx-2">·</span>
+        <button class="btn btn-sm" id="gistTokenBtn">Токен для записи статусов</button>
+        <span id="tokenStatus"></span>
       </div>
 
-      <!-- Table -->
-      <div class="panel overflow-hidden" id="table-wrap" style="display: none">
-        <div class="overflow-x-auto" style="max-height: 70vh">
-          <table id="tbl">
-            <thead>
-              <tr>
-                <th style="width: 18%">Шот</th>
-                <th style="width: 27%">cloth <span style="color:var(--text-dim);font-weight:400">· OUT / WORK</span></th>
-                <th style="width: 27%">hair <span style="color:var(--text-dim);font-weight:400">· OUT / WORK</span></th>
-                <th style="width: 14%">Flipbook</th>
-                <th style="width: 14%">Статус</th>
-              </tr>
-            </thead>
-            <tbody id="tbody"></tbody>
-          </table>
+      <!-- Source picker -->
+      <div id="sourceCard" class="panel p-6 mb-5" style="display:none;">
+        <div class="text-center mb-4">
+          <div class="text-lg font-semibold">Данных ещё нет</div>
+          <div class="text-sm" style="color: var(--text-dim);">Подключи GitHub Gist или перетащи файл progress.json</div>
+        </div>
+        <div class="flex items-center gap-2 justify-center flex-wrap">
+          <input type="text" id="gistIdInput" placeholder="напр. abc123def456 или https://gist.github.com/..." style="width: 360px;" />
+          <button class="btn btn-primary" id="bindGistBtn">Связать</button>
+          <button class="btn" id="unbindGistBtn" style="display:none;">Отвязать</button>
+        </div>
+        <div id="dropZone" class="drop-zone mt-4 text-center text-sm rounded-lg border-2 border-dashed py-8" style="border-color: var(--border); color: var(--text-dim);">
+          — или перетащи progress.json прямо сюда —
         </div>
       </div>
 
-      <div id="tooltip" role="tooltip"></div>
-      <div id="verTooltip"></div>
-      <div id="toast" class="toast"></div>
-
-      <!-- Модальное окно видео -->
-      <div id="videoModal" class="modal-backdrop">
-        <div class="modal-box">
-          <div class="modal-head">
-            <span class="modal-title" id="videoTitle"></span>
-            <button class="modal-close" id="videoClose">×</button>
-          </div>
-          <div id="videoBody"></div>
-        </div>
+      <!-- Animations content — БЕЗ внутреннего скролла -->
+      <div id="animContent" class="panel" style="overflow: visible;">
+        <table id="animTable">
+          <thead>
+            <tr>
+              <th style="min-width: 200px; width: 18%;">Шот</th>
+              <th style="width: 30%;">cloth <span class="mono" style="font-weight: 400; color: var(--text-dim);">· OUT / WORK</span></th>
+              <th style="width: 30%;">hair <span class="mono" style="font-weight: 400; color: var(--text-dim);">· OUT / WORK</span></th>
+              <th style="width: 10%;">Flipbook</th>
+              <th style="width: 12%; min-width: 120px;">Статус</th>
+            </tr>
+          </thead>
+          <tbody id="animTbody"></tbody>
+        </table>
       </div>
 
-      <!-- Модальное окно токена -->
-      <div id="tokenModal" class="modal-backdrop">
-        <div class="modal-box" style="min-width:380px;max-width:520px">
-          <div class="modal-head">
-            <span class="modal-title" style="color:var(--text)">GitHub-токен для статусов</span>
-            <button class="modal-close" id="tokenClose">×</button>
-          </div>
-          <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px">
-            Чтобы менять статусы, нужен Personal Access Token с правом <span class="mono" style="color:var(--accent)">gist (read &amp; write)</span>. Создать можно в <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--accent);text-decoration:underline">settings/tokens</a>. Токен хранится только у тебя в браузере (localStorage).
-          </p>
-          <input id="tokenInput" type="password" class="token-input" style="width:100%;margin-bottom:10px" placeholder="ghp_..." />
-          <div style="display:flex;gap:8px;justify-content:flex-end">
-            <button class="btn" id="tokenClear">Стереть</button>
-            <button class="btn btn-primary" id="tokenSave">Сохранить</button>
-          </div>
-        </div>
+      <!-- Simulations content -->
+      <div id="simContent" class="panel p-4" style="display: none;">
+        <div id="simList"></div>
       </div>
 
-      <footer class="mt-8 text-xs text-[var(--text-dim)] text-center">
-        Локальный агент сканирует сетевой шар, дашборд читает progress.json.
-        <br />Никакие данные никуда не отправляются — JSON загружается прямо в браузер.
-      </footer>
+      <!-- Footer -->
+      <div class="mt-6 text-center text-xs" style="color: var(--text-dim);">
+        Локальный агент сканирует сетевой шар, дашборд читает progress.json.<br />
+        Статусы хранятся в Gist · никаких данных никуда не отправляется кроме github.com.
+      </div>
+
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Карточка версии по клику -->
+    <div id="verCard"></div>
+
+    <!-- Video modal -->
+    <div class="modal-overlay" id="videoModal">
+      <div class="modal-box" style="position: relative;">
+        <button class="modal-close" onclick="closeVideoModal()">Закрыть</button>
+        <div class="modal-title" id="videoTitle">Flipbook</div>
+        <video class="video-player" id="videoPlayer" controls autoplay></video>
+        <div class="text-xs mono" id="videoPath" style="color: var(--text-dim); word-break: break-all;"></div>
+        <div class="text-xs" id="videoNote" style="color: var(--warn);"></div>
+      </div>
+    </div>
+
+    <!-- Token modal -->
+    <div class="modal-overlay" id="tokenModal">
+      <div class="modal-box" style="position: relative; min-width: 480px;">
+        <button class="modal-close" onclick="closeTokenModal()">Закрыть</button>
+        <div class="modal-title">GitHub-токен для записи статусов</div>
+        <div class="text-xs" style="color: var(--text-dim);">
+          Чтобы статусы шотов (анимирован / засимулирован / сдан) сохранялись в Gist, нужен fine-grained personal access token со скоупом <b>Gists: Read and write</b>.
+          Токен хранится только в твоём браузере (localStorage), никуда не отправляется кроме github.com.
+        </div>
+        <input type="password" id="tokenInput" placeholder="github_pat_..." style="width: 100%;" />
+        <div class="flex items-center gap-2 justify-end">
+          <button class="btn" onclick="clearToken()">Очистить</button>
+          <button class="btn btn-primary" onclick="saveToken()">Сохранить</button>
+        </div>
+      </div>
     </div>
 
     <script>
+      // ====== State ======
+      let DATA = null;
+      let STATUSES = {};
+      let activeTab = "anim";
+      let gistId = localStorage.getItem("anim_gist_id") || "";
+      let gistToken = localStorage.getItem("anim_gist_token") || "";
+
+      const STATUS_KEYS = ["anim", "sim", "delivered"];
+      const STATUS_LABELS = { anim: "Анимирован", sim: "Засимулирован", delivered: "Сдан" };
+      const STATUS_SVG = {
+        anim: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>',
+        sim: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-3 5-3 7 0s5 3 7 0 4-1 4 0"></path><path d="M3 18c2-3 5-3 7 0s5 3 7 0 4-1 4 0"></path></svg>',
+        delivered: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+      };
+
+      // Для быстрых ссылок (последняя загруженная версия → объект)
+      let VER_REGISTRY = new Map();
+
+      // ====== Helpers ======
       const $ = (sel) => document.querySelector(sel);
-      const STAGES = ["OUT", "WORK"];
-      const ASSETS = ["cloth", "hair"];
-      let gistId = null; // в текущей сессии
+      const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+      );
+      const escapeAttr = (s) => escapeHtml(s);
 
-      // Извлечь gist id из ввода: принимает ID, URL gist, или raw URL
-      function extractGistId(input) {
-        if (!input) return null;
-        input = input.trim();
-        // gist.githubusercontent.com/.../raw/...
-        let m = input.match(/gist\.github(?:usercontent)?\.com\/[^/]+\/([0-9a-f]{20,})/i);
-        if (m) return m[1];
-        // чистый ID
-        m = input.match(/^([0-9a-f]{20,})$/i);
-        if (m) return m[1];
-        return null;
-      }
-
-      async function loadFromGist(id) {
-        const url = `https://api.github.com/gists/${id}`;
-        try {
-          const r = await fetch(url, { cache: "no-store" });
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          const meta = await r.json();
-          // ищем первый .json файл внутри gist
-          const files = Object.values(meta.files || {});
-          const jsonFile = files.find((f) => /\.json$/i.test(f.filename)) || files[0];
-          if (!jsonFile) throw new Error("В gist нет файлов");
-          // если файл большой, API отдаёт truncated=true и raw_url
-          let text;
-          if (jsonFile.truncated && jsonFile.raw_url) {
-            const r2 = await fetch(jsonFile.raw_url, { cache: "no-store" });
-            text = await r2.text();
-          } else {
-            text = jsonFile.content;
-          }
-          const data = JSON.parse(text);
-          gistId = id;
-          updateSourceBar("gist", `Gist: ${id.slice(0, 8)}… · файл ${jsonFile.filename}`);
-          render(data);
-        } catch (err) {
-          alert("Не удалось загрузить из Gist: " + err.message + "\n\nПроверь что Gist public и ID верный.");
-        }
-      }
-
-      function updateSourceBar(kind, text) {
-        const bar = $("#source-bar");
-        bar.style.display = "flex";
-        $("#source-text").textContent = text;
-        $("#source-chip").textContent = kind === "gist" ? "GitHub Gist" : "локальный файл";
-      }
-
-      function pluralize(n, forms) {
-        // forms: [one, few, many] e.g. ['шот', 'шота', 'шотов']
-        const mod10 = n % 10;
-        const mod100 = n % 100;
-        if (mod10 === 1 && mod100 !== 11) return forms[0];
-        if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return forms[1];
-        return forms[2];
-      }
-      let lastData = null;
-      let lastFile = null;
-
-      function escapeHtml(s) {
-        return String(s).replace(/[&<>"']/g, (c) => ({
-          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-        }[c]));
-      }
-      function escapeAttr(s) {
-        return String(s).replace(/"/g, "&quot;");
-      }
-
+      const MONTHS = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
       function formatDateTime(iso) {
-        if (!iso) return null;
-        // Работаем с ISO без таймзоны: 2026-05-16T14:23:10 → "16 мая, 14:23"
-        const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-        if (!m) return iso;
-        const [, y, mo, d, hh, mm] = m;
-        const months = [
-          "янв", "фев", "мар", "апр", "мая", "июн",
-          "июл", "авг", "сен", "окт", "ноя", "дек"
-        ];
-        const monthName = months[parseInt(mo, 10) - 1];
+        if (!iso) return "—";
+        const d = new Date(iso);
+        if (isNaN(d)) return iso;
+        const day = d.getDate();
+        const month = MONTHS[d.getMonth()];
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
         const now = new Date();
-        const yearPart = parseInt(y, 10) === now.getFullYear() ? "" : ` ${y}`;
-        return `${parseInt(d, 10)} ${monthName}${yearPart}, ${hh}:${mm}`;
+        const yearPart = d.getFullYear() === now.getFullYear() ? "" : ` ${d.getFullYear()}`;
+        return `${day} ${month}${yearPart}, ${hh}:${mm}`;
       }
-
+      function formatDateShort(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        if (isNaN(d)) return iso;
+        return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+      }
+      function pluralize(n, [one, few, many]) {
+        const mod10 = n % 10, mod100 = n % 100;
+        if (mod10 === 1 && mod100 !== 11) return one;
+        if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+        return many;
+      }
       function formatBytes(n) {
-        if (!Number.isFinite(n) || n <= 0) return "0 B";
-        const units = ["B", "KB", "MB", "GB", "TB"];
-        let i = 0;
-        while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
-        return `${n.toFixed(n >= 100 || i === 0 ? 0 : n >= 10 ? 1 : 2)} ${units[i]}`;
+        if (!n || !Number.isFinite(n)) return "0 B";
+        const k = 1024, units = ["B","KB","MB","GB","TB"];
+        const i = Math.min(Math.floor(Math.log(n) / Math.log(k)), units.length - 1);
+        return `${(n / Math.pow(k, i)).toFixed(i ? 1 : 0)} ${units[i]}`;
       }
 
-      function renderVersions(versions) {
-        if (!versions || versions.length === 0) {
-          return `<span class="text-xs text-[var(--text-dim)] mono">—</span>`;
+      // ====== Toast ======
+      let toastTimer = null;
+      function showToast(text, ok = true) {
+        const t = $("#toast");
+        t.textContent = text;
+        t.classList.toggle("err", !ok);
+        t.classList.add("visible");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("visible"), 2200);
+      }
+
+      // ====== Clipboard ======
+      async function copyToClipboard(text) {
+        try {
+          if (navigator.clipboard?.writeText && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return true;
+          }
+        } catch (e) {}
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+          document.body.appendChild(ta); ta.select();
+          const ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          return ok;
+        } catch (e) { return false; }
+      }
+
+      // ====== Время последнего сканирования ======
+      function renderScannedAt() {
+        const badge = $("#scannedAtBadge");
+        if (!badge) return;
+        if (!DATA || !DATA.scanned_at) { badge.textContent = ""; badge.title = ""; return; }
+        const iso = DATA.scanned_at;
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) {
+          badge.textContent = `просканировано: ${iso}`;
+          badge.title = iso;
+          return;
         }
-        // Последняя = самая большая не битая версия с файлами
-        const goodNums = versions.filter(v => v.has_file && !v.broken).map(v => v.num);
-        const maxGoodNum = goodNums.length ? Math.max(...goodNums) : -1;
-        return versions
-          .map((v, idx) => {
-            let cls;
-            if (v.broken) cls = "ver-broken";
-            else if (!v.has_file) cls = "ver-empty";
-            else if (v.num === maxGoodNum) cls = "ver-latest";
-            else cls = "ver-ok";
-            return `<span class="ver-dot ${cls}" data-ver-idx="${idx}">${v.version}</span>`;
-          })
-          .join("");
+        const now = new Date();
+        const diffMs = now - d;
+        const diffSec = Math.round(diffMs / 1000);
+        let rel;
+        if (diffSec < 60) rel = `${diffSec} сек назад`;
+        else if (diffSec < 3600) rel = `${Math.round(diffSec/60)} мин назад`;
+        else if (diffSec < 86400) rel = `${Math.round(diffSec/3600)} ч назад`;
+        else rel = `${Math.round(diffSec/86400)} дн назад`;
+        const pad = n => String(n).padStart(2, "0");
+        const abs = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        badge.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:4px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>обновлено ${rel} · ${abs}`;
+        badge.title = `Последнее сканирование: ${iso}`;
       }
 
-      function renderFlipbookCell(fb) {
-        if (!fb || !fb.path) {
-          return `<span class="flip-empty">—</span>`;
+      // ====== Stats ======
+      function renderStats() {
+        if (!DATA) { $("#statsBlock").innerHTML = ""; return; }
+        const s = DATA.summary || {};
+
+        // shots_done может прийти не из всех версий скана — посчитаем сами как фоллбэк
+        let shotsDone = s.shots_done;
+        if (shotsDone == null) {
+          shotsDone = 0;
+          (DATA.sequences || []).forEach(seq => (seq.shots || []).forEach(sh => {
+            if (sh.is_done || shotIsDoneLocal(sh)) shotsDone++;
+          }));
         }
-        return `<button class="flip-btn" data-flip="1" title="Открыть свежее flipbook-видео">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-          ${escapeHtml(fb.version || "")}
-        </button>`;
-      }
+        const totalShots = s.shots || 0;
+        const shotsBar = totalShots > 0 ? shotsDone / totalShots : 0;
 
-      function renderStatusCell(seqName, shotName) {
-        const key = `${seqName}/${shotName}`;
-        const cur = statusesMap[key] || "";
-        const hasToken = !!getToken();
-        const items = [
-          { k: "anim", title: "Анимирован",
-            svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>` },
-          { k: "sim", title: "Засимулирован",
-            svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-3 5-3 7 0s5 3 7 0 4-1 4 0"></path><path d="M3 18c2-3 5-3 7 0s5 3 7 0 4-1 4 0"></path></svg>` },
-          { k: "delivered", title: "Сдан",
-            svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>` },
+        const cards = [
+          { label: "Сиквенций", val: s.sequences || 0 },
+          { label: "Шотов готово", val: `${shotsDone} / ${totalShots}`, bar: shotsBar },
+          { label: "Версий ready / total", val: `${s.versions_ready || 0} / ${s.versions_total || 0}`, bar: s.versions_total ? (s.versions_ready / s.versions_total) : 0 },
+          { label: "Битых версий", val: s.versions_broken || 0, danger: !!s.versions_broken },
+          { label: "Симуляций", val: s.simulations || 0 },
         ];
-        const lockedCls = hasToken ? "" : " locked";
-        return `<div class="status-cell">${items.map(it => {
-          const active = cur === it.k ? " active" : "";
-          return `<button class="status-pill${active}${lockedCls}" data-status-key="${escapeAttr(key)}" data-status-val="${it.k}" title="${it.title}" aria-label="${it.title}">${it.svg}</button>`;
-        }).join("")}</div>`;
+        $("#statsBlock").innerHTML = cards.map(c => `
+          <div class="panel p-4">
+            <div class="stat">
+              <div class="stat-label">${c.label}</div>
+              <div class="stat-num" style="${c.danger ? 'color: var(--danger);' : ''}">${c.val}</div>
+              ${c.bar !== undefined ? `<div class="bar mt-2"><span style="width: ${Math.round(c.bar*100)}%"></span></div>` : ''}
+            </div>
+          </div>
+        `).join("");
       }
 
-      function shotMatchesQuery(seqName, shotName, q) {
-        if (!q) return true;
-        const s = q.toLowerCase();
-        return (
-          seqName.toLowerCase().includes(s) ||
-          shotName.toLowerCase().includes(s)
-        );
-      }
-
-      // Глобальные хранилища
-      let statusesMap = {};       // { "seq/shot": "anim" | "sim" | "delivered" }
-      let statusesGistFile = "statuses.json";
-
-      function shotIsDone(shot) {
-        // Готов: в OUT есть хотя бы одна не битая версия по любому ассету
-        for (const a of ASSETS) {
-          const arr = (shot.stages && shot.stages.OUT && shot.stages.OUT[a]) || [];
-          for (const v of arr) {
+      function shotIsDoneLocal(shot) {
+        const s = shot.stages || {};
+        for (const a of ['cloth','hair']) {
+          for (const v of (s.OUT?.[a] || [])) {
             if (v.has_file && !v.broken) return true;
           }
         }
         return false;
       }
 
-      function render(data) {
-        if (!data || !data.sequences) return;
-        lastData = data;
+      // ====== Версия → запись в реестре по uid ======
+      function registerVersion(v) {
+        // Уникальный id: путь (или просто счётчик, если пути нет)
+        const uid = v.path || `${v.version}_${Math.random()}`;
+        VER_REGISTRY.set(uid, v);
+        return uid;
+      }
 
-        // Stats
-        $("#stats").style.display = "grid";
-        $("#legend").style.display = "flex";
-        $("#table-wrap").style.display = "block";
-        $("#drop").style.display = "none";
+      // ====== Version rendering ======
+      function renderFlatVersions(versions) {
+        if (!versions || !versions.length) return `<span style="color: var(--miss);">—</span>`;
+        const withFile = versions.filter(v => v.has_file && !v.broken);
+        const latestNum = withFile.length ? Math.max(...withFile.map(v => v.num)) : null;
+        return versions.map(v => {
+          let cls = "ver-dot ";
+          if (v.broken) cls += "ver-broken";
+          else if (!v.has_file) cls += "ver-empty";
+          else cls += (v.num === latestNum ? "ver-ok ver-latest" : "ver-ok");
+          const uid = registerVersion(v);
+          return `<span class="${cls}" data-ver-uid="${escapeAttr(uid)}">${escapeHtml(v.version)}</span>`;
+        }).join("");
+      }
 
-        const s = data.summary || {};
-        $("#stat-seq").textContent = s.sequences || 0;
-
-        // Шоты готово (из summary или считаем вручную на старых JSON)
-        let totalShots = s.shots || 0;
-        let doneShots = s.shots_done;
-        if (doneShots == null) {
-          doneShots = 0;
-          (data.sequences || []).forEach(seq => (seq.shots || []).forEach(sh => {
-            if (shotIsDone(sh)) doneShots++;
-          }));
+      function renderVariantBlock(variants) {
+        if (!variants || !Object.keys(variants).length) {
+          return `<span style="color: var(--miss);">—</span>`;
         }
-        $("#stat-shots").textContent = `${doneShots} / ${totalShots}`;
-        const pct = totalShots > 0 ? Math.round((doneShots / totalShots) * 100) : 0;
-        $("#stat-bar").style.width = pct + "%";
+        const names = Object.keys(variants).sort((a, b) => {
+          if (a === "_root") return -1;
+          if (b === "_root") return 1;
+          return a.localeCompare(b);
+        });
+        // Если ровно один вариант и он _root — отрисуем без подписи
+        if (names.length === 1 && names[0] === "_root") {
+          return `<div class="versions-wrap">${renderFlatVersions(variants["_root"])}</div>`;
+        }
+        return names.map(name => {
+          const versions = variants[name];
+          const isRoot = name === "_root";
+          const displayName = isRoot ? "(плоско)" : name;
+          return `<div class="variant-block">
+            <span class="variant-name ${isRoot ? 'variant-root' : ''}">${escapeHtml(displayName)}</span>
+            <span class="versions-wrap">${renderFlatVersions(versions)}</span>
+          </div>`;
+        }).join("");
+      }
 
-        const ready = s.versions_ready || 0;
-        const total = s.versions_total || 0;
-        $("#stat-ratio").textContent = `${ready} / ${total}`;
-        $("#stat-time").textContent = data.scanned_at || "—";
+      // Ячейка ассета: OUT слева, разделитель, WORK справа
+      function renderAssetCell(asset, stages) {
+        const outV = (stages.OUT?.[asset]) || [];
+        const workVariants = (stages.WORK?.[asset]) || {};
+        return `<div class="asset-cell">
+          <div class="asset-stage stage-out">
+            <span class="stage-tag">OUT</span>
+            <div class="versions-wrap">${renderFlatVersions(outV)}</div>
+          </div>
+          <div class="asset-divider"></div>
+          <div class="asset-stage stage-work">
+            <span class="stage-tag">WORK</span>
+            <div>${renderVariantBlock(workVariants)}</div>
+          </div>
+        </div>`;
+      }
 
-        // Table
-        const q = $("#search").value.trim();
-        const tbody = $("#tbody");
-        tbody.innerHTML = "";
+      function renderFlipbookCell(flipVersions, shotName) {
+        if (!flipVersions || !flipVersions.length) {
+          return `<span style="color: var(--miss);">—</span>`;
+        }
+        const withVideo = flipVersions.filter(v => v.has_video);
+        if (!withVideo.length) {
+          return `<span class="chip chip-warn">пусто</span>`;
+        }
+        const latest = withVideo[withVideo.length - 1];
+        const video = latest.videos[0];
+        // Новый формат: video.path — это полный путь до файла.
+        // Старый формат: latest.path — папка v###, файл лежит внутри.
+        const fullPath = video.path || `${latest.path}\\${video.name}`;
+        return `<button class="flipbook-btn" data-flipbook='${escapeAttr(JSON.stringify({
+          title: shotName, ver: latest.version, path: fullPath
+        }))}'>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg>
+          ${escapeHtml(latest.version)}
+        </button>`;
+      }
 
-        data.sequences.forEach((seq) => {
-          const filteredShots = (seq.shots || []).filter((sh) =>
-            shotMatchesQuery(seq.name, sh.name, q),
-          );
-          if (q && filteredShots.length === 0) return;
+      // ====== Status pills ======
+      function renderStatusPills(seqName, shot) {
+        const key = `${seqName}/${shot.name}`;
+        const st = STATUSES[key] || {};
+        const locked = !gistToken || !gistId;
+        return `<div class="status-cell" data-shot-key="${escapeAttr(key)}">
+          ${STATUS_KEYS.map(k => {
+            const active = !!st[k];
+            const lockedCls = locked ? "locked" : "";
+            return `<span class="status-pill ${active ? 'active' : ''} ${lockedCls}"
+              data-status-key="${k}"
+              title="${STATUS_LABELS[k]}${locked ? ' (нужен Gist + токен)' : ''}">${STATUS_SVG[k]}</span>`;
+          }).join("")}
+        </div>`;
+      }
 
-          // Sequence row
-          const seqRow = document.createElement("tr");
-          seqRow.className = "seq-row";
-          const noteHtml = seq.note
-            ? ` <span class="chip chip-warn">${seq.note}</span>`
-            : "";
-          const shotCount = (seq.shots || []).length;
-          const shotsLabel = pluralize(shotCount, ['шот', 'шота', 'шотов']);
-          seqRow.innerHTML = `<td colspan="5">${seq.name} <span class="text-xs text-[var(--text-dim)] font-normal ml-2">${shotCount} ${shotsLabel}</span>${noteHtml}</td>`;
-          tbody.appendChild(seqRow);
+      function isShotDelivered(seqName, shot) {
+        const key = `${seqName}/${shot.name}`;
+        return !!(STATUSES[key] && STATUSES[key].delivered);
+      }
 
-          // Shot rows
-          filteredShots.forEach((shot) => {
-            const row = document.createElement("tr");
-            row.className = "shot-row";
-            const stKey = `${seq.name}/${shot.name}`;
-            if (statusesMap[stKey] === "delivered") row.classList.add("delivered");
-            row.dataset.shotKey = stKey;
+      // ====== Render Animations table ======
+      function renderAnim() {
+        if (!DATA) { $("#animTbody").innerHTML = ""; return; }
+        VER_REGISTRY = new Map(); // сбрасываем реестр на ререндере
+        const search = ($("#search").value || "").trim().toLowerCase();
+        const tbody = $("#animTbody");
+        const rows = [];
 
-            const totalReady = STAGES.reduce(
-              (acc, st) =>
-                acc +
-                ASSETS.reduce(
-                  (a2, as) =>
-                    a2 +
-                    (shot.stages[st][as] || []).filter((v) => v.has_file && !v.broken)
-                      .length,
-                  0,
-                ),
-              0,
-            );
-            const totalAll = STAGES.reduce(
-              (acc, st) =>
-                acc +
-                ASSETS.reduce(
-                  (a2, as) => a2 + (shot.stages[st][as] || []).length,
-                  0,
-                ),
-              0,
-            );
+        for (const seq of (DATA.sequences || [])) {
+          const matchingShots = (seq.shots || []).filter(shot => {
+            if (!search) return true;
+            return shot.name.toLowerCase().includes(search) || seq.name.toLowerCase().includes(search);
+          });
+          if (search && !matchingShots.length && !seq.name.toLowerCase().includes(search)) continue;
 
-            const hasPath = !!shot.path;
-            const hintHtml = hasPath
-              ? `<span class="shot-hint">
-                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                   </svg>
-                   <span class="hint-text">клик, чтобы скопировать путь</span>
-                 </span>`
-              : "";
+          // Seq row
+          const noteHtml = seq.note ? `<span class="chip chip-warn ml-2">${escapeHtml(seq.note)}</span>` : "";
+          rows.push(`<tr class="seq-row"><td colspan="5">${escapeHtml(seq.name)}
+            <span class="text-xs ml-2" style="color: var(--text-dim); font-weight: 400;">${(seq.shots || []).length} ${pluralize((seq.shots || []).length, ['шот','шота','шотов'])}</span>
+            ${noteHtml}
+          </td></tr>`);
 
-            const cells = [];
-            cells.push(
-              `<td class="shot-cell" data-shot-cell="1">
+          // Sub-header дублирует названия колонок
+          rows.push(`<tr class="seq-subhead">
+            <td>Шот</td>
+            <td>cloth · OUT / WORK</td>
+            <td>hair · OUT / WORK</td>
+            <td>Flipbook</td>
+            <td>Статус</td>
+          </tr>`);
+
+          for (const shot of matchingShots) {
+            const stages = shot.stages || {};
+            const flipbooks = stages.WORK?.flipbooks || [];
+
+            const allVersionsCount = countShotVersions(shot);
+            const readyCount = countShotReady(shot);
+            const delivered = isShotDelivered(seq.name, shot);
+
+            rows.push(`<tr class="shot-row ${delivered ? 'delivered' : ''}" data-seq="${escapeAttr(seq.name)}" data-shot-name="${escapeAttr(shot.name)}" data-shot-path="${escapeAttr(shot.path || '')}">
+              <td class="shot-cell">
                 <div class="shot-name-wrap">
                   <div class="font-medium">${escapeHtml(shot.name)}</div>
                   <div class="shot-meta-row">
-                    <span class="text-xs text-[var(--text-dim)] mono">${totalReady}/${totalAll}</span>
-                    ${hintHtml}
+                    <span class="text-xs mono" style="color: var(--text-dim);">${readyCount}/${allVersionsCount}</span>
+                    ${shot.path ? `<span class="shot-hint">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      <span class="hint-text">кликни, чтобы скопировать путь</span>
+                    </span>` : ''}
                   </div>
                 </div>
-              </td>`,
-            );
+              </td>
+              <td>${renderAssetCell('cloth', stages)}</td>
+              <td>${renderAssetCell('hair', stages)}</td>
+              <td>${renderFlipbookCell(flipbooks, shot.name)}</td>
+              <td>${renderStatusPills(seq.name, shot)}</td>
+            </tr>`);
+          }
+        }
+        tbody.innerHTML = rows.join("");
+      }
 
-            // Объединённые ячейки cloth (OUT|WORK) и hair (OUT|WORK)
-            ASSETS.forEach((asset) => {
-              const outV = shot.stages.OUT[asset] || [];
-              const wrkV = shot.stages.WORK[asset] || [];
-              cells.push(`<td>
-                <div class="asset-cell">
-                  <div class="asset-stage" data-stage="OUT" data-asset="${asset}">
-                    <span class="stage-tag">OUT</span>
-                    <div class="versions">${renderVersions(outV)}</div>
-                  </div>
-                  <div class="divider"></div>
-                  <div class="asset-stage" data-stage="WORK" data-asset="${asset}">
-                    <span class="stage-tag">WORK</span>
-                    <div class="versions">${renderVersions(wrkV)}</div>
-                  </div>
+      function countShotVersions(shot) {
+        const s = shot.stages || {};
+        let total = 0;
+        for (const asset of ['cloth', 'hair']) {
+          total += (s.OUT?.[asset] || []).length;
+          for (const vlist of Object.values(s.WORK?.[asset] || {})) {
+            total += vlist.length;
+          }
+        }
+        total += (s.WORK?.flipbooks || []).length;
+        return total;
+      }
+      function countShotReady(shot) {
+        const s = shot.stages || {};
+        let ready = 0;
+        for (const asset of ['cloth', 'hair']) {
+          ready += (s.OUT?.[asset] || []).filter(v => v.has_file && !v.broken).length;
+          for (const vlist of Object.values(s.WORK?.[asset] || {})) {
+            ready += vlist.filter(v => v.has_file && !v.broken).length;
+          }
+        }
+        ready += (s.WORK?.flipbooks || []).filter(v => v.has_file && !v.broken).length;
+        return ready;
+      }
+
+      // ====== Render Simulations ======
+      function renderSim() {
+        if (!DATA) { $("#simList").innerHTML = ""; return; }
+        const sims = DATA.simulations || [];
+        const search = ($("#search").value || "").trim().toLowerCase();
+        const filtered = search ? sims.filter(s => s.name.toLowerCase().includes(search)) : sims;
+        if (!filtered.length) {
+          $("#simList").innerHTML = `<div class="p-8 text-center" style="color: var(--text-dim);">Симуляций не найдено</div>`;
+          return;
+        }
+        $("#simList").innerHTML = filtered.map(sim => {
+          const types = sim.asset_types || {};
+          const typeNames = Object.keys(types).sort();
+          const totalFiles = typeNames.reduce((acc, n) => acc + types[n].flat_files.length + types[n].versions.length, 0);
+          return `<div class="mb-4 panel p-4">
+            <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+              <div>
+                <div class="font-medium text-base">${escapeHtml(sim.name)}</div>
+                <div class="text-xs mono" style="color: var(--text-dim);">
+                  ${sim.path ? escapeHtml(sim.path) : ''}
                 </div>
-              </td>`);
-            });
-
-            cells.push(`<td data-flip-cell="1">${renderFlipbookCell(shot.flipbook)}</td>`);
-            cells.push(`<td data-status-cell="1">${renderStatusCell(seq.name, shot.name)}</td>`);
-
-            row.innerHTML = cells.join("");
-            row._shotData = shot;
-            row._seqName = seq.name;
-            tbody.appendChild(row);
-          });
-        });
-
-        if (tbody.children.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" class="text-center text-[var(--text-dim)] py-8">Ничего не найдено по запросу.</td></tr>`;
-        }
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs" style="color: var(--text-dim);">${totalFiles} ${pluralize(totalFiles, ['файл', 'файла', 'файлов'])}
+                  ${sim.latest_modified ? ' · ' + formatDateShort(sim.latest_modified) : ''}
+                </span>
+                ${sim.path ? `<button class="btn btn-sm sim-copy-btn" data-path="${escapeAttr(sim.path)}">копировать путь</button>` : ''}
+              </div>
+            </div>
+            ${sim.note ? `<div class="chip chip-warn">${escapeHtml(sim.note)}</div>` : ''}
+            ${typeNames.map(name => {
+              const info = types[name];
+              const fileItems = info.flat_files.map(f => {
+                const cls = f.broken ? 'sim-file broken' : 'sim-file';
+                const verBadge = f.version_num ? `<span class="ver-dot ver-ok mono">v${String(f.version_num).padStart(3,'0')}</span>` : '';
+                const brokenBadge = f.broken ? '<span class="chip chip-danger">битый</span>' : '';
+                return `<div class="${cls}">
+                  ${verBadge}
+                  <span class="flex-1">${escapeHtml(f.name)}</span>
+                  <span style="color: var(--text-dim); font-size: 11px;">${formatBytes(f.size)}</span>
+                  ${brokenBadge}
+                  <span style="color: var(--text-dim); font-size: 11px;">${formatDateShort(f.modified)}</span>
+                </div>`;
+              }).join("");
+              const verItems = renderFlatVersions(info.versions);
+              return `<div class="sim-asset">
+                <div class="sim-asset-title">${escapeHtml(name)}</div>
+                ${fileItems}
+                ${info.versions.length ? `<div class="mt-2">${verItems}</div>` : ''}
+              </div>`;
+            }).join("")}
+          </div>`;
+        }).join("");
       }
 
-      function loadFile(file) {
-        lastFile = file;
-        gistId = null;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const data = JSON.parse(e.target.result);
-            updateSourceBar("file", `файл: ${file.name}`);
-            render(data);
-          } catch (err) {
-            alert("Не удалось прочитать JSON: " + err.message);
-          }
-        };
-        reader.readAsText(file);
+      // ====== Tabs ======
+      function activateTab(tab) {
+        activeTab = tab;
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+        $("#animContent").style.display = tab === "anim" ? "block" : "none";
+        $("#simContent").style.display = tab === "sim" ? "block" : "none";
+        if (tab === "anim") renderAnim();
+        else renderSim();
       }
 
-      // File input
-      $("#file").addEventListener("change", (e) => {
-        if (e.target.files[0]) loadFile(e.target.files[0]);
-      });
+      // ====== Карточка версии (по клику) ======
+      const verCard = $("#verCard");
+      let verCardPath = "";
 
-      // Drop zone
-      const drop = $("#drop");
-      ["dragenter", "dragover"].forEach((evt) =>
-        drop.addEventListener(evt, (e) => {
-          e.preventDefault();
-          drop.classList.add("dragover");
-        }),
-      );
-      ["dragleave", "drop"].forEach((evt) =>
-        drop.addEventListener(evt, (e) => {
-          e.preventDefault();
-          drop.classList.remove("dragover");
-        }),
-      );
-      drop.addEventListener("drop", (e) => {
-        const f = e.dataTransfer.files[0];
-        if (f) loadFile(f);
-      });
+      function showVerCard(targetEl, v) {
+        const broken = !!v.broken;
+        const sizeStr = Number.isFinite(v.size_bytes) ? formatBytes(v.size_bytes) : "—";
+        const modStr = v.modified ? formatDateTime(v.modified) : "—";
+        const filesStr = Number.isFinite(v.file_count) ? String(v.file_count) : "—";
+        const path = v.path || "";
+        verCardPath = path;
 
-      // Body-wide drop (after first file loaded)
-      document.body.addEventListener("dragover", (e) => e.preventDefault());
-      document.body.addEventListener("drop", (e) => {
-        e.preventDefault();
-        const f = e.dataTransfer.files[0];
-        if (f && f.name.endsWith(".json")) loadFile(f);
-      });
+        const badge = broken
+          ? `<span class="vc-badge broken">битая &lt; 1 MB</span>`
+          : `<span class="vc-badge">${v.has_file ? "OK" : "пусто"}</span>`;
 
-      // Reload button — обновляет из Gist или предлагает файл
-      $("#reload").addEventListener("click", () => {
-        if (gistId) {
-          loadFromGist(gistId);
-        } else {
-          $("#file").click();
-        }
-      });
-
-      // Привязка Gist
-      $("#gist-load").addEventListener("click", () => {
-        const id = extractGistId($("#gist-input").value);
-        if (!id) {
-          alert("Не удалось распознать Gist ID. Вставь URL gist'а или его ID.");
-          return;
-        }
-        // обновляем URL, чтобы при перезагрузке не вводить снова
-        const url = new URL(window.location.href);
-        url.searchParams.set("gist", id);
-        history.replaceState({}, "", url);
-        loadFromGist(id);
-      });
-      $("#gist-input").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") $("#gist-load").click();
-      });
-
-      // Отвязка источника
-      $("#source-clear").addEventListener("click", () => {
-        gistId = null;
-        lastData = null;
-        const url = new URL(window.location.href);
-        url.searchParams.delete("gist");
-        history.replaceState({}, "", url);
-        $("#source-bar").style.display = "none";
-        $("#table-wrap").style.display = "none";
-        $("#stats").style.display = "none";
-        $("#legend").style.display = "none";
-        $("#drop").style.display = "block";
-      });
-
-      // Автоподъём gist из URL ?gist=...
-      (function bootFromUrl() {
-        const params = new URLSearchParams(window.location.search);
-        const id = params.get("gist");
-        if (id) loadFromGist(id);
-      })();
-
-      // Search
-      $("#search").addEventListener("input", () => {
-        if (lastData) render(lastData);
-      });
-
-      // ===== Tooltip on shot hover =====
-      const tooltip = $("#tooltip");
-
-      function buildTooltipHtml(seqName, shot) {
-        const latestPerSlot = [];
-        STAGES.forEach((stage) => {
-          ASSETS.forEach((asset) => {
-            const vers = shot.stages[stage][asset] || [];
-            const ready = vers.filter((v) => v.has_file);
-            const latest = ready.length ? ready[ready.length - 1] : null;
-            latestPerSlot.push({
-              label: `${stage} · ${asset}`,
-              version: latest ? latest.version : "—",
-              date: latest ? formatDateTime(latest.modified) : "",
-            });
-          });
-        });
-
-        const rows = latestPerSlot
-          .map(
-            (s) => `
-            <span class="label">${s.label}</span>
-            <span class="ver">${s.version}</span>
-            <span class="date">${s.date || ""}</span>
-          `,
-          )
-          .join("");
-
-        const latestMod = shot.latest_modified
-          ? `Последняя правка: ${formatDateTime(shot.latest_modified)}`
-          : "Нет данных о модификации";
-
-        return `
-          <div class="tip-title">${escapeHtml(shot.name)}</div>
-          <div class="tip-subtitle">${escapeHtml(seqName)} · ${latestMod}</div>
-          ${shot.path ? `<div class="tip-path">${escapeHtml(shot.path)}</div>` : ""}
-          <div class="tip-grid">${rows}</div>
-          ${shot.path ? `<div class="tip-hint">→ клик по шоту копирует путь. В проводнике: Ctrl+L → Ctrl+V → Enter</div>` : ""}
-        `;
-      }
-
-      function positionTooltip(e) {
-        const pad = 14;
-        const rect = tooltip.getBoundingClientRect();
-        let x = e.clientX + 16;
-        let y = e.clientY + 16;
-        if (x + rect.width + pad > window.innerWidth) {
-          x = e.clientX - rect.width - 16;
-        }
-        if (y + rect.height + pad > window.innerHeight) {
-          y = window.innerHeight - rect.height - pad;
-        }
-        if (y < pad) y = pad;
-        if (x < pad) x = pad;
-        tooltip.style.left = x + "px";
-        tooltip.style.top = y + "px";
-      }
-
-      document.addEventListener("mouseover", (e) => {
-        const row = e.target.closest(".shot-row");
-        if (!row || !row._shotData) {
-          tooltip.classList.remove("visible");
-          return;
-        }
-        tooltip.innerHTML = buildTooltipHtml(row._seqName, row._shotData);
-        tooltip.classList.add("visible");
-        positionTooltip(e);
-      });
-      document.addEventListener("mousemove", (e) => {
-        if (tooltip.classList.contains("visible")) positionTooltip(e);
-      });
-      document.addEventListener("mouseout", (e) => {
-        if (!e.relatedTarget || !e.relatedTarget.closest(".shot-row")) {
-          tooltip.classList.remove("visible");
-        }
-      });
-
-      // ===== Copy path to clipboard =====
-      const toast = $("#toast");
-      function showToast(text, ok = true) {
-        toast.textContent = text;
-        toast.style.borderColor = ok ? "var(--ok)" : "#ef4444";
-        toast.style.color = ok ? "var(--ok)" : "#ef4444";
-        toast.classList.add("visible");
-        clearTimeout(toast._timer);
-        toast._timer = setTimeout(() => toast.classList.remove("visible"), 1800);
-      }
-
-      async function copyToClipboard(text) {
-        // Основной путь — modern clipboard API
-        if (navigator.clipboard && window.isSecureContext) {
-          try {
-            await navigator.clipboard.writeText(text);
-            return true;
-          } catch (_) {
-            // фоллбэк ниже
-          }
-        }
-        // Fallback через временный textarea
-        try {
-          const ta = document.createElement("textarea");
-          ta.value = text;
-          ta.style.position = "fixed";
-          ta.style.opacity = "0";
-          document.body.appendChild(ta);
-          ta.select();
-          const ok = document.execCommand("copy");
-          document.body.removeChild(ta);
-          return ok;
-        } catch (_) {
-          return false;
-        }
-      }
-
-      document.addEventListener("click", async (e) => {
-        // Не запускаем копирование пути шота, если кликнули по интерактивному элементу внутри строки
-        if (
-          e.target.closest(".ver-dot") ||
-          e.target.closest(".flip-btn") ||
-          e.target.closest(".status-pill") ||
-          e.target.closest("[data-flip-cell]") ||
-          e.target.closest("[data-status-cell]") ||
-          e.target.closest("#verTooltip") ||
-          e.target.closest(".modal-backdrop")
-        ) return;
-
-        const row = e.target.closest(".shot-row");
-        if (!row || !row._shotData) return;
-        // Копируем путь только при клике на ячейку шота (первая колонка)
-        if (!e.target.closest("[data-shot-cell]")) return;
-
-        const path = row._shotData.path;
-        if (!path) {
-          showToast("У шота нет пути", false);
-          return;
-        }
-        const ok = await copyToClipboard(path);
-        if (ok) {
-          row.classList.add("copied");
-          setTimeout(() => row.classList.remove("copied"), 1200);
-          const hintText = row.querySelector(".hint-text");
-          if (hintText) {
-            const orig = hintText.textContent;
-            hintText.textContent = "скопировано";
-            setTimeout(() => { hintText.textContent = orig; }, 1200);
-          }
-          showToast("Путь скопирован");
-        } else {
-          showToast("Не удалось скопировать", false);
-        }
-      });
-
-      // ===== Токен (localStorage) =====
-      const TOKEN_KEY = "anim_gist_token";
-      function getToken() {
-        try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (_) { return ""; }
-      }
-      function setToken(t) {
-        try {
-          if (t) localStorage.setItem(TOKEN_KEY, t);
-          else localStorage.removeItem(TOKEN_KEY);
-        } catch (_) {}
-      }
-      function updateTokenButtonState() {
-        const el = $("#token-state");
-        if (!el) return;
-        el.textContent = getToken() ? "Токен \u2713" : "Токен";
-      }
-      updateTokenButtonState();
-
-      // Модалка токена
-      const tokenModal = $("#tokenModal");
-      $("#token-btn").addEventListener("click", () => {
-        $("#tokenInput").value = getToken();
-        tokenModal.classList.add("visible");
-        setTimeout(() => $("#tokenInput").focus(), 30);
-      });
-      $("#tokenClose").addEventListener("click", () => tokenModal.classList.remove("visible"));
-      tokenModal.addEventListener("click", (e) => {
-        if (e.target === tokenModal) tokenModal.classList.remove("visible");
-      });
-      $("#tokenSave").addEventListener("click", () => {
-        const v = $("#tokenInput").value.trim();
-        setToken(v);
-        updateTokenButtonState();
-        tokenModal.classList.remove("visible");
-        showToast(v ? "Токен сохранён" : "Токен стёрт");
-        if (lastData) render(lastData);
-      });
-      $("#tokenClear").addEventListener("click", () => {
-        setToken("");
-        $("#tokenInput").value = "";
-        updateTokenButtonState();
-        showToast("Токен стёрт");
-        if (lastData) render(lastData);
-      });
-
-      // ===== Статусы: загрузка/сохранение в тот же Gist =====
-      async function loadStatusesFromGist(id) {
-        if (!id) return;
-        try {
-          const headers = {};
-          const tk = getToken();
-          if (tk) headers["Authorization"] = `Bearer ${tk}`;
-          const r = await fetch(`https://api.github.com/gists/${id}`, { cache: "no-store", headers });
-          if (!r.ok) return;
-          const meta = await r.json();
-          const f = meta.files && meta.files[statusesGistFile];
-          if (!f) { statusesMap = {}; return; }
-          let text;
-          if (f.truncated && f.raw_url) {
-            const r2 = await fetch(f.raw_url, { cache: "no-store" });
-            text = await r2.text();
-          } else {
-            text = f.content;
-          }
-          try {
-            const parsed = JSON.parse(text);
-            statusesMap = (parsed && typeof parsed === "object") ? parsed : {};
-          } catch (_) {
-            statusesMap = {};
-          }
-        } catch (_) {
-          // молча — если Gist приватный или без токена
-        }
-      }
-
-      async function saveStatusesToGist(id) {
-        if (!id) return false;
-        const tk = getToken();
-        if (!tk) {
-          showToast("Нужен GitHub-токен (кнопка «Токен»)", false);
-          return false;
-        }
-        try {
-          const body = JSON.stringify({
-            files: {
-              [statusesGistFile]: {
-                content: JSON.stringify(statusesMap, null, 2),
-              },
-            },
-          });
-          const r = await fetch(`https://api.github.com/gists/${id}`, {
-            method: "PATCH",
-            headers: {
-              "Authorization": `Bearer ${tk}`,
-              "Accept": "application/vnd.github+json",
-              "Content-Type": "application/json",
-            },
-            body,
-          });
-          if (!r.ok) {
-            showToast(`Gist: HTTP ${r.status}`, false);
-            return false;
-          }
-          return true;
-        } catch (err) {
-          showToast("Сеть: " + err.message, false);
-          return false;
-        }
-      }
-
-      // Подмешиваем загрузку статусов после загрузки основного Gist
-      const _origLoadFromGist = loadFromGist;
-      loadFromGist = async function(id) {
-        await _origLoadFromGist(id);
-        if (gistId === id) {
-          await loadStatusesFromGist(id);
-          if (lastData) render(lastData);
-        }
-      };
-
-      // ===== Клик по статус-«таблеткам» =====
-      document.addEventListener("click", async (e) => {
-        const pill = e.target.closest(".status-pill[data-status-key]");
-        if (!pill) return;
-        e.stopPropagation();
-        if (!gistId) {
-          showToast("Сначала подключи Gist", false);
-          return;
-        }
-        if (!getToken()) {
-          showToast("Нужен GitHub-токен для записи статусов", false);
-          return;
-        }
-        const key = pill.dataset.statusKey;
-        const val = pill.dataset.statusVal;
-        const prev = statusesMap[key] || "";
-        // Тот же статус — снять, иначе — установить
-        if (prev === val) delete statusesMap[key];
-        else statusesMap[key] = val;
-
-        // Оптимистично перерисовываем строку этого шота
-        const row = pill.closest(".shot-row");
-        if (row) {
-          const seqName = row._seqName;
-          const shotName = row._shotData ? row._shotData.name : "";
-          const stCell = row.querySelector("[data-status-cell]");
-          if (stCell) stCell.innerHTML = renderStatusCell(seqName, shotName);
-          if (statusesMap[key] === "delivered") row.classList.add("delivered");
-          else row.classList.remove("delivered");
-        }
-
-        const ok = await saveStatusesToGist(gistId);
-        if (!ok) {
-          // Откатываем локально
-          if (prev) statusesMap[key] = prev;
-          else delete statusesMap[key];
-          if (row) {
-            const seqName = row._seqName;
-            const shotName = row._shotData ? row._shotData.name : "";
-            const stCell = row.querySelector("[data-status-cell]");
-            if (stCell) stCell.innerHTML = renderStatusCell(seqName, shotName);
-            if (statusesMap[key] === "delivered") row.classList.add("delivered");
-            else row.classList.remove("delivered");
-          }
-        } else {
-          showToast("Статус сохранён");
-        }
-      });
-
-      // ===== Тултип-карточка версии =====
-      const verTooltip = $("#verTooltip");
-      let verTooltipBoundPath = "";
-
-      function showVerTooltip(targetEl, version, asset, stage) {
-        if (!version) return;
-        const title = `${version.version} · ${asset} · ${stage}`;
-        const badge = version.broken ? `<span class="vt-badge broken">битая</span>` : `<span class="vt-badge">${version.has_file ? "OK" : "пусто"}</span>`;
-        const sizeStr = Number.isFinite(version.size_bytes) ? formatBytes(version.size_bytes) : "—";
-        const modStr = version.modified ? formatDateTime(version.modified) : "—";
-        const filesStr = Number.isFinite(version.file_count) ? String(version.file_count) : "—";
-        const path = version.path || "";
-        verTooltipBoundPath = path;
-
-        verTooltip.innerHTML = `
-          <div class="vt-head">
-            <span class="vt-title">${escapeHtml(title)}</span>
+        verCard.innerHTML = `
+          <div class="vc-head">
+            <span class="vc-title">${escapeHtml(v.version)}</span>
             ${badge}
           </div>
-          <div class="vt-row"><span class="k">Размер</span><span class="v">${escapeHtml(sizeStr)}</span></div>
-          <div class="vt-row"><span class="k">Изменено</span><span class="v">${escapeHtml(modStr)}</span></div>
-          <div class="vt-row"><span class="k">Файлов</span><span class="v">${escapeHtml(filesStr)}</span></div>
-          ${path ? `<div class="vt-path">${escapeHtml(path)}</div>` : ""}
-          ${path ? `<button class="vt-copy" id="vtCopyBtn">
+          <div class="vc-row"><span class="k">Размер</span><span class="v">${escapeHtml(sizeStr)}</span></div>
+          <div class="vc-row"><span class="k">Изменено</span><span class="v">${escapeHtml(modStr)}</span></div>
+          <div class="vc-row"><span class="k">Файлов</span><span class="v">${escapeHtml(filesStr)}</span></div>
+          ${path ? `<div class="vc-path">${escapeHtml(path)}</div>` : ""}
+          ${path ? `<button class="vc-copy" id="verCardCopy">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             Скопировать путь
           </button>` : ""}
         `;
 
-        // Позиционируем рядом с элементом
+        // Позиционирование рядом с элементом
         const rect = targetEl.getBoundingClientRect();
-        verTooltip.classList.add("visible");
-        const tipRect = verTooltip.getBoundingClientRect();
+        verCard.classList.add("visible");
+        const tipRect = verCard.getBoundingClientRect();
+        const pad = 10;
         let x = rect.left;
         let y = rect.bottom + 6;
-        const pad = 10;
         if (x + tipRect.width + pad > window.innerWidth) x = window.innerWidth - tipRect.width - pad;
         if (y + tipRect.height + pad > window.innerHeight) y = rect.top - tipRect.height - 6;
         if (x < pad) x = pad;
         if (y < pad) y = pad;
-        verTooltip.style.left = x + "px";
-        verTooltip.style.top = y + "px";
+        verCard.style.left = x + "px";
+        verCard.style.top = y + "px";
+      }
+      function hideVerCard() {
+        verCard.classList.remove("visible");
+        verCardPath = "";
       }
 
-      function hideVerTooltip() {
-        verTooltip.classList.remove("visible");
-        verTooltipBoundPath = "";
-      }
-
-      document.addEventListener("click", (e) => {
-        const dot = e.target.closest(".ver-dot[data-ver-idx]");
-        if (dot) {
+      // ====== Click handlers ======
+      document.addEventListener("click", async (e) => {
+        // Клик по версии — открыть карточку
+        const verEl = e.target.closest(".ver-dot[data-ver-uid]");
+        if (verEl) {
           e.stopPropagation();
-          const stageEl = dot.closest(".asset-stage");
-          if (!stageEl) return;
-          const stage = stageEl.dataset.stage;
-          const asset = stageEl.dataset.asset;
-          const row = dot.closest(".shot-row");
-          if (!row || !row._shotData) return;
-          const idx = parseInt(dot.dataset.verIdx, 10);
-          const arr = (row._shotData.stages[stage] && row._shotData.stages[stage][asset]) || [];
-          const v = arr[idx];
-          if (!v) return;
-          showVerTooltip(dot, v, asset, stage);
+          const uid = verEl.dataset.verUid;
+          const v = VER_REGISTRY.get(uid);
+          if (v) showVerCard(verEl, v);
           return;
         }
-        // Кнопка копирования внутри тултипа
-        if (e.target.closest("#vtCopyBtn")) {
+        // Кнопка копирования в карточке
+        if (e.target.closest("#verCardCopy")) {
           e.stopPropagation();
-          if (verTooltipBoundPath) {
-            copyToClipboard(verTooltipBoundPath).then((ok) => {
-              showToast(ok ? "Путь скопирован" : "Не удалось скопировать", ok);
-            });
+          if (verCardPath) {
+            const ok = await copyToClipboard(verCardPath);
+            showToast(ok ? "Путь скопирован" : "Не удалось скопировать", ok);
           }
           return;
         }
-        // Клик мимо — закрыть
-        if (!e.target.closest("#verTooltip")) hideVerTooltip();
+        // Клик мимо карточки — закрыть
+        if (verCard.classList.contains("visible") && !e.target.closest("#verCard")) {
+          hideVerCard();
+        }
+
+        // Flipbook
+        const flipBtn = e.target.closest(".flipbook-btn");
+        if (flipBtn) {
+          e.stopPropagation();
+          try {
+            const info = JSON.parse(flipBtn.dataset.flipbook);
+            openVideoModal(info);
+          } catch (err) { showToast("Ошибка открытия видео", false); }
+          return;
+        }
+        // Status pill
+        const pill = e.target.closest(".status-pill[data-status-key]");
+        if (pill) {
+          e.stopPropagation();
+          if (pill.classList.contains("locked")) {
+            showToast("Подключи Gist + токен, чтобы менять статусы", false);
+            return;
+          }
+          const cell = pill.closest(".status-cell");
+          const shotKey = cell.dataset.shotKey;
+          const statusKey = pill.dataset.statusKey;
+          await toggleStatus(shotKey, statusKey, pill);
+          return;
+        }
+        // Sim copy
+        const simCopy = e.target.closest(".sim-copy-btn");
+        if (simCopy) {
+          e.stopPropagation();
+          const ok = await copyToClipboard(simCopy.dataset.path);
+          showToast(ok ? "Путь скопирован" : "Не удалось скопировать", ok);
+          return;
+        }
+        // Shot row → copy path (только если клик не на интерактиве)
+        const row = e.target.closest(".shot-row");
+        if (row) {
+          if (e.target.closest(".status-pill") || e.target.closest(".flipbook-btn") || e.target.closest(".ver-dot")) return;
+          const path = row.dataset.shotPath;
+          if (!path) { showToast("У шота нет пути", false); return; }
+          const ok = await copyToClipboard(path);
+          if (ok) {
+            row.classList.add("copied");
+            setTimeout(() => row.classList.remove("copied"), 1200);
+            const hint = row.querySelector(".hint-text");
+            if (hint) {
+              const orig = hint.textContent;
+              hint.textContent = "скопировано";
+              setTimeout(() => { hint.textContent = orig; }, 1200);
+            }
+            showToast("Путь скопирован");
+          } else {
+            showToast("Не удалось скопировать", false);
+          }
+        }
       });
 
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
-          hideVerTooltip();
-          $("#videoModal").classList.remove("visible");
-          tokenModal.classList.remove("visible");
+          hideVerCard();
+          closeVideoModal();
+          closeTokenModal();
         }
       });
 
-      // ===== Модалка флипбука =====
-      const videoModal = $("#videoModal");
-      $("#videoClose").addEventListener("click", () => {
-        videoModal.classList.remove("visible");
-        $("#videoBody").innerHTML = "";
-      });
-      videoModal.addEventListener("click", (e) => {
-        if (e.target === videoModal) {
-          videoModal.classList.remove("visible");
-          $("#videoBody").innerHTML = "";
-        }
-      });
-
-      document.addEventListener("click", (e) => {
-        const btn = e.target.closest(".flip-btn[data-flip]");
-        if (!btn) return;
-        e.stopPropagation();
-        const row = btn.closest(".shot-row");
-        if (!row || !row._shotData || !row._shotData.flipbook) return;
-        const fb = row._shotData.flipbook;
-        $("#videoTitle").textContent = `${row._shotData.name} · ${fb.version || ""}`;
-
-        const body = $("#videoBody");
+      // ====== Video modal ======
+      function openVideoModal(info) {
+        $("#videoTitle").textContent = `${info.title} · ${info.ver}`;
+        $("#videoPath").textContent = info.path;
+        const player = $("#videoPlayer");
+        // Пробуем file:// — работает только при локальном открытии страницы
+        const filePath = "file:" + info.path.replace(/\\/g, "/").replace(/^\/\//, "////");
         const isFile = location.protocol === "file:";
-        const path = fb.path || "";
-        const fileUrl = path ? "file:///" + path.replace(/\\/g, "/").replace(/^\/+/, "") : "";
-
-        if (isFile && fileUrl) {
-          body.innerHTML = `
-            <video src="${escapeAttr(fileUrl)}" controls autoplay style="max-width:80vw;max-height:70vh;border-radius:8px;display:block"></video>
-            <div class="vt-row" style="margin-top:10px"><span class="k">Файл</span><span class="v mono" style="font-size:11px;word-break:break-all">${escapeHtml(path)}</span></div>
-            <button class="vt-copy" id="flipCopyBtn" style="margin-top:8px">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              Скопировать путь
-            </button>
-          `;
+        if (isFile) {
+          player.src = filePath;
+          player.style.display = "block";
         } else {
-          body.innerHTML = `
-            <p style="font-size:12px;color:var(--text-dim);max-width:520px;margin-bottom:10px">
-              Браузер не может воспроизвести видео из сетевой папки через HTTPS. Скопируй путь и открой файл локально.
-            </p>
-            <div class="vt-path" style="margin:0 0 10px 0">${escapeHtml(path)}</div>
-            <button class="vt-copy" id="flipCopyBtn">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              Скопировать путь
-            </button>
-          `;
+          player.src = "";
+          player.style.display = "none";
         }
-        videoModal.classList.add("visible");
+        $("#videoNote").innerHTML = `
+          <div>${isFile ? "Видео грузится с сетевого пути напрямую." : "Видео не воспроизвести из HTTPS-страницы — открой путь локально или скопируй ниже."}</div>
+          <button class="btn btn-sm mt-2" id="flipCopyBtn">копировать путь к видео</button>
+        `;
+        $("#flipCopyBtn")?.addEventListener("click", async () => {
+          const ok = await copyToClipboard(info.path);
+          showToast(ok ? "Путь скопирован" : "Не удалось скопировать", ok);
+        });
+        $("#videoModal").classList.add("visible");
+      }
+      function closeVideoModal() {
+        const player = $("#videoPlayer");
+        player.pause(); player.src = "";
+        $("#videoModal").classList.remove("visible");
+      }
+      window.closeVideoModal = closeVideoModal;
+      window.copyToClipboard = copyToClipboard;
+      window.showToast = showToast;
 
-        const copyBtn = $("#flipCopyBtn");
-        if (copyBtn) {
-          copyBtn.addEventListener("click", async () => {
-            const ok = await copyToClipboard(path);
-            showToast(ok ? "Путь скопирован" : "Не удалось скопировать", ok);
+      // ====== Status save (Gist) ======
+      async function toggleStatus(shotKey, statusKey, pill) {
+        if (!gistId || !gistToken) { showToast("Нужен Gist + токен", false); return; }
+        STATUSES[shotKey] = STATUSES[shotKey] || {};
+        const cur = !!STATUSES[shotKey][statusKey];
+        STATUSES[shotKey][statusKey] = !cur;
+        STATUSES[shotKey].ts = new Date().toISOString();
+        pill.classList.toggle("active", !cur);
+        pill.classList.add("saving");
+        // Затемнение строки для delivered
+        if (statusKey === "delivered") {
+          const row = pill.closest(".shot-row");
+          if (row) row.classList.toggle("delivered", !cur);
+        }
+        const ok = await saveStatusesToGist();
+        pill.classList.remove("saving");
+        if (ok) {
+          showToast(`${STATUS_LABELS[statusKey]}: ${!cur ? "включено" : "снято"}`);
+        } else {
+          // Откат
+          STATUSES[shotKey][statusKey] = cur;
+          pill.classList.toggle("active", cur);
+          if (statusKey === "delivered") {
+            const row = pill.closest(".shot-row");
+            if (row) row.classList.toggle("delivered", cur);
+          }
+          showToast("Не удалось сохранить статус", false);
+        }
+      }
+
+      async function loadStatusesFromGist() {
+        if (!gistId) return;
+        try {
+          const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+            headers: gistToken ? { "Authorization": `Bearer ${gistToken}` } : {}
           });
+          if (!resp.ok) return;
+          const data = await resp.json();
+          const file = data.files?.["statuses.json"];
+          if (file?.content) {
+            try { STATUSES = JSON.parse(file.content); } catch (_) { STATUSES = {}; }
+          } else {
+            STATUSES = {};
+          }
+        } catch (e) {
+          console.warn("loadStatusesFromGist failed:", e);
+        }
+      }
+
+      async function saveStatusesToGist() {
+        if (!gistId || !gistToken) return false;
+        try {
+          const body = { files: { "statuses.json": { content: JSON.stringify(STATUSES, null, 2) } } };
+          const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+            method: "PATCH",
+            headers: {
+              "Authorization": `Bearer ${gistToken}`,
+              "Accept": "application/vnd.github+json",
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+          });
+          return resp.ok;
+        } catch (e) {
+          console.error("saveStatusesToGist", e);
+          return false;
+        }
+      }
+
+      // ====== Token modal ======
+      function openTokenModal() {
+        $("#tokenInput").value = gistToken || "";
+        $("#tokenModal").classList.add("visible");
+      }
+      function closeTokenModal() { $("#tokenModal").classList.remove("visible"); }
+      function saveToken() {
+        gistToken = $("#tokenInput").value.trim();
+        if (gistToken) localStorage.setItem("anim_gist_token", gistToken);
+        else localStorage.removeItem("anim_gist_token");
+        updateTokenStatus();
+        closeTokenModal();
+        showToast(gistToken ? "Токен сохранён" : "Токен очищен");
+        loadStatusesFromGist().then(() => activateTab(activeTab));
+      }
+      function clearToken() {
+        $("#tokenInput").value = "";
+        saveToken();
+      }
+      window.saveToken = saveToken;
+      window.closeTokenModal = closeTokenModal;
+      window.clearToken = clearToken;
+
+      function updateTokenStatus() {
+        const s = $("#tokenStatus");
+        if (!gistId) s.innerHTML = `<span class="chip chip-warn">нет Gist</span>`;
+        else if (!gistToken) s.innerHTML = `<span class="chip chip-warn">токен не задан · статусы read-only</span>`;
+        else s.innerHTML = `<span class="chip chip-ok">токен задан · статусы редактируются</span>`;
+      }
+
+      // ====== Data loading ======
+      function applyData(data, sourceLabel) {
+        DATA = data;
+        $("#sourceCard").style.display = "none";
+        $("#dataSourceBadge").textContent = sourceLabel || "";
+        renderStats();
+        renderScannedAt();
+        activateTab(activeTab);
+        // Периодически обновляем «х мин назад», чтобы было видно свежесть
+        if (!window.__scannedAtTimer) {
+          window.__scannedAtTimer = setInterval(renderScannedAt, 30000);
+        }
+      }
+
+      async function loadFromGist() {
+        if (!gistId) return false;
+        const url = `https://api.github.com/gists/${gistId}`;
+        try {
+          const resp = await fetch(url, { cache: "no-store" });
+          if (!resp.ok) {
+            showToast(`Gist HTTP ${resp.status}`, false);
+            return false;
+          }
+          const meta = await resp.json();
+          const file = meta.files?.["progress.json"];
+          if (!file) { showToast("В Gist нет progress.json", false); return false; }
+          let content = file.content;
+          if (file.truncated && file.raw_url) {
+            const r = await fetch(file.raw_url, { cache: "no-store" });
+            content = await r.text();
+          }
+          await loadStatusesFromGist();
+          applyData(JSON.parse(content), `Gist: ${gistId.slice(0,8)}…`);
+          return true;
+        } catch (e) {
+          showToast("Не удалось загрузить из Gist: " + e.message, false);
+          return false;
+        }
+      }
+
+      function loadFromFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            applyData(data, `Файл: ${file.name}`);
+          } catch (err) {
+            showToast("Не удалось распарсить JSON", false);
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      // ====== Wiring ======
+      $("#loadJsonBtn").addEventListener("click", () => $("#fileInput").click());
+      $("#fileInput").addEventListener("change", (e) => {
+        if (e.target.files[0]) loadFromFile(e.target.files[0]);
+      });
+      $("#refreshBtn").addEventListener("click", async () => {
+        if (gistId) {
+          showToast("Обновляю из Gist…");
+          await loadFromGist();
+        } else if (DATA) {
+          activateTab(activeTab);
+          showToast("Перерендерил");
+        } else {
+          showToast("Нет источника данных", false);
         }
       });
+      $("#search").addEventListener("input", () => activateTab(activeTab));
+      document.querySelectorAll(".tab-btn").forEach(b => {
+        b.addEventListener("click", () => activateTab(b.dataset.tab));
+      });
+      $("#bindGistBtn").addEventListener("click", async () => {
+        let v = $("#gistIdInput").value.trim();
+        const m = v.match(/gist\.github\.com\/[^/]+\/([a-f0-9]+)/i);
+        if (m) v = m[1];
+        if (!/^[a-f0-9]{6,}$/i.test(v)) { showToast("Неверный Gist ID", false); return; }
+        gistId = v;
+        localStorage.setItem("anim_gist_id", gistId);
+        $("#unbindGistBtn").style.display = "";
+        updateTokenStatus();
+        await loadFromGist();
+      });
+      $("#unbindGistBtn").addEventListener("click", () => {
+        gistId = ""; localStorage.removeItem("anim_gist_id");
+        $("#unbindGistBtn").style.display = "none";
+        updateTokenStatus();
+        $("#dataSourceBadge").textContent = "";
+        showToast("Gist отвязан");
+      });
+      $("#gistTokenBtn").addEventListener("click", openTokenModal);
+
+      // Drag-and-drop
+      const dz = $("#dropZone");
+      ["dragenter","dragover"].forEach(ev => dz.addEventListener(ev, (e) => {
+        e.preventDefault(); dz.classList.add("dragover");
+      }));
+      ["dragleave","drop"].forEach(ev => dz.addEventListener(ev, (e) => {
+        e.preventDefault(); dz.classList.remove("dragover");
+      }));
+      dz.addEventListener("drop", (e) => {
+        const file = e.dataTransfer?.files[0];
+        if (file) loadFromFile(file);
+      });
+      // body-wide drop
+      document.body.addEventListener("dragover", (e) => e.preventDefault());
+      document.body.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const f = e.dataTransfer?.files[0];
+        if (f && f.name.endsWith(".json")) loadFromFile(f);
+      });
+
+      // ====== Boot ======
+      (async () => {
+        const params = new URLSearchParams(location.search);
+        const urlGist = params.get("gist");
+        if (urlGist) {
+          gistId = urlGist;
+          localStorage.setItem("anim_gist_id", gistId);
+        }
+        if (gistId) {
+          $("#gistIdInput").value = gistId;
+          $("#unbindGistBtn").style.display = "";
+        }
+        updateTokenStatus();
+        if (gistId) {
+          const ok = await loadFromGist();
+          if (!ok) $("#sourceCard").style.display = "block";
+        } else {
+          $("#sourceCard").style.display = "block";
+        }
+      })();
     </script>
   </body>
 </html>
