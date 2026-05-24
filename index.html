@@ -228,6 +228,28 @@
       }
 
       /* Flipbook */
+      .scanned-badge {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        margin-bottom: 14px;
+        border-radius: 8px;
+        background: rgba(94, 234, 212, 0.06);
+        border: 1px solid rgba(94, 234, 212, 0.18);
+        color: var(--text-dim);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        line-height: 1.4;
+        flex-wrap: wrap;
+      }
+      .scanned-badge.visible { display: inline-flex; }
+      .scanned-badge .scanned-rel { color: var(--accent); font-weight: 500; }
+      .scanned-badge .scanned-abs { color: var(--text-dim); }
+      .scanned-badge .scanned-sep { color: rgba(255,255,255,0.15); }
+      .scanned-badge.stale { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); }
+      .scanned-badge.stale .scanned-rel { color: var(--warn); }
+
       .flipbook-btn {
         display: inline-flex; align-items: center; justify-content: center;
         gap: 4px; padding: 4px 10px;
@@ -429,8 +451,10 @@
         <button class="tab-btn" data-tab="sim" id="tabSim">Симуляции</button>
         <div class="flex-1"></div>
         <div id="dataSourceBadge" class="text-xs mono" style="color: var(--text-dim);"></div>
-        <div id="scannedAtBadge" class="text-xs mono" style="color: var(--text-dim);" title="Время последнего сканирования"></div>
       </div>
+
+      <!-- Бейдж времени сканирования -->
+      <div id="scannedAtBadge" class="scanned-badge" title="Время последнего сканирования"></div>
 
       <!-- Stats -->
       <div id="statsBlock" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5"></div>
@@ -631,25 +655,38 @@
       function renderScannedAt() {
         const badge = $("#scannedAtBadge");
         if (!badge) return;
-        if (!DATA || !DATA.scanned_at) { badge.textContent = ""; badge.title = ""; return; }
+        if (!DATA || !DATA.scanned_at) {
+          badge.classList.remove("visible", "stale");
+          badge.innerHTML = "";
+          badge.title = "";
+          return;
+        }
         const iso = DATA.scanned_at;
         const d = new Date(iso);
         if (isNaN(d.getTime())) {
-          badge.textContent = `просканировано: ${iso}`;
+          badge.classList.add("visible");
+          badge.innerHTML = `просканировано: ${escapeHtml(iso)}`;
           badge.title = iso;
           return;
         }
         const now = new Date();
-        const diffMs = now - d;
-        const diffSec = Math.round(diffMs / 1000);
+        const diffSec = Math.round((now - d) / 1000);
         let rel;
-        if (diffSec < 60) rel = `${diffSec} сек назад`;
+        if (diffSec < 60) rel = `${Math.max(diffSec,0)} сек назад`;
         else if (diffSec < 3600) rel = `${Math.round(diffSec/60)} мин назад`;
         else if (diffSec < 86400) rel = `${Math.round(diffSec/3600)} ч назад`;
         else rel = `${Math.round(diffSec/86400)} дн назад`;
         const pad = n => String(n).padStart(2, "0");
         const abs = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-        badge.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:4px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>обновлено ${rel} · ${abs}`;
+        // Старее 6ч — выделяем жёлтым
+        badge.classList.toggle("stale", diffSec > 6 * 3600);
+        badge.classList.add("visible");
+        badge.innerHTML =
+          `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>` +
+          `<span>Последнее сканирование:</span>` +
+          `<span class="scanned-rel">${rel}</span>` +
+          `<span class="scanned-sep">•</span>` +
+          `<span class="scanned-abs">${abs}</span>`;
         badge.title = `Последнее сканирование: ${iso}`;
       }
 
@@ -761,19 +798,46 @@
         </div>`;
       }
 
+      const VIDEO_EXTS_RE = /\.(mp4|mov|webm|m4v)$/i;
+
+      function pickVideoFromVersion(v) {
+        // Приоритет: videos[0] → files с видео-расширением → files[0]
+        if (Array.isArray(v.videos) && v.videos.length) return v.videos[0];
+        if (Array.isArray(v.files)) {
+          const vid = v.files.find(f => VIDEO_EXTS_RE.test(f.name || ""));
+          if (vid) return vid;
+          if (v.files.length) return v.files[0];
+        }
+        return null;
+      }
+
+      function versionHasVideoFallback(v) {
+        if (v.has_video) return true;
+        if (Array.isArray(v.videos) && v.videos.length) return true;
+        if (Array.isArray(v.files) && v.files.some(f => VIDEO_EXTS_RE.test(f.name || ""))) return true;
+        return false;
+      }
+
       function renderFlipbookCell(flipVersions, shotName) {
         if (!flipVersions || !flipVersions.length) {
           return `<span style="color: var(--miss);">—</span>`;
         }
-        const withVideo = flipVersions.filter(v => v.has_video);
+        const withVideo = flipVersions.filter(versionHasVideoFallback);
         if (!withVideo.length) {
           return `<span class="chip chip-warn">пусто</span>`;
         }
-        const latest = withVideo[withVideo.length - 1];
-        const video = latest.videos[0];
-        // Новый формат: video.path — это полный путь до файла.
-        // Старый формат: latest.path — папка v###, файл лежит внутри.
-        const fullPath = video.path || `${latest.path}\\${video.name}`;
+        // Последняя по номеру версии (фолбэк — по порядку)
+        const latest = withVideo.slice().sort((a,b) => (a.num||0) - (b.num||0)).pop();
+        const video = pickVideoFromVersion(latest);
+        // Новый формат: video.path — полный путь до файла.
+        // Старый формат: latest.path — папка v###, файл внутри.
+        let fullPath = "";
+        if (video && video.path) fullPath = video.path;
+        else if (latest.path && video && video.name && !latest.path.toLowerCase().endsWith((video.name || "").toLowerCase())) {
+          fullPath = `${latest.path}\\${video.name}`;
+        } else if (latest.path) {
+          fullPath = latest.path;
+        }
         return `<button class="flipbook-btn" data-flipbook='${escapeAttr(JSON.stringify({
           title: shotName, ver: latest.version, path: fullPath
         }))}'>
@@ -955,9 +1019,19 @@
         else renderSim();
       }
 
-      // ====== Карточка версии (по клику) ======
+      // ====== Карточка версии (hover + клик) ======
       const verCard = $("#verCard");
       let verCardPath = "";
+      let verCardPinned = false;        // true — открыта кликом, не закрывается на mouseleave
+      let verHoverShowTimer = null;
+      let verHoverHideTimer = null;
+      const VER_HOVER_DELAY_SHOW = 180;
+      const VER_HOVER_DELAY_HIDE = 220;
+
+      function cancelVerTimers() {
+        if (verHoverShowTimer) { clearTimeout(verHoverShowTimer); verHoverShowTimer = null; }
+        if (verHoverHideTimer) { clearTimeout(verHoverHideTimer); verHoverHideTimer = null; }
+      }
 
       function showVerCard(targetEl, v) {
         const broken = !!v.broken;
@@ -1003,17 +1077,56 @@
       function hideVerCard() {
         verCard.classList.remove("visible");
         verCardPath = "";
+        verCardPinned = false;
       }
+
+      // ===== Hover-handlers для версий =====
+      document.addEventListener("mouseover", (e) => {
+        const verEl = e.target.closest(".ver-dot[data-ver-uid]");
+        if (verEl) {
+          cancelVerTimers();
+          verHoverShowTimer = setTimeout(() => {
+            const v = VER_REGISTRY.get(verEl.dataset.verUid);
+            if (v) showVerCard(verEl, v);
+          }, VER_HOVER_DELAY_SHOW);
+          return;
+        }
+        // Навели на саму карточку — отменяем закрытие
+        if (e.target.closest("#verCard")) {
+          cancelVerTimers();
+        }
+      });
+      document.addEventListener("mouseout", (e) => {
+        const verEl = e.target.closest(".ver-dot[data-ver-uid]");
+        const goingTo = e.relatedTarget && e.relatedTarget.closest && (e.relatedTarget.closest(".ver-dot[data-ver-uid]") || e.relatedTarget.closest("#verCard"));
+        if (verEl && !goingTo) {
+          // Увело курсор с версии
+          if (verHoverShowTimer) { clearTimeout(verHoverShowTimer); verHoverShowTimer = null; }
+          if (!verCardPinned) {
+            verHoverHideTimer = setTimeout(() => { hideVerCard(); }, VER_HOVER_DELAY_HIDE);
+          }
+          return;
+        }
+        if (e.target.closest && e.target.closest("#verCard") && !goingTo) {
+          if (!verCardPinned) {
+            verHoverHideTimer = setTimeout(() => { hideVerCard(); }, VER_HOVER_DELAY_HIDE);
+          }
+        }
+      });
 
       // ====== Click handlers ======
       document.addEventListener("click", async (e) => {
-        // Клик по версии — открыть карточку
+        // Клик по версии — «закрепить» карточку (не закрывается по mouseleave)
         const verEl = e.target.closest(".ver-dot[data-ver-uid]");
         if (verEl) {
           e.stopPropagation();
+          cancelVerTimers();
           const uid = verEl.dataset.verUid;
           const v = VER_REGISTRY.get(uid);
-          if (v) showVerCard(verEl, v);
+          if (v) {
+            showVerCard(verEl, v);
+            verCardPinned = true;
+          }
           return;
         }
         // Кнопка копирования в карточке
